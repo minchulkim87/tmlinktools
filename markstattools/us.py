@@ -67,10 +67,26 @@ def download_all_historical() -> None:
         if os.path.exists(f'{save_path}/{zip_name}'):
             print(f'skipping {zip_name}')
         else:
-            os.makedirs(f'{save_path}/{zip_name}')
             print(zip_name)
             data = (pdx.read_xml(zip_file, root_key_list)
                     .pipe(auto_separate_tables, key_columns))
             data = convert_date_all_tables(data)
+            os.makedirs(f'{save_path}/{zip_name}')
+            save_all_tables(data, zip_name)
+            del data
+
+
+def download_all_daily() -> None:
+    daily_zip_files = get_daily_zip_file_path_list()
+    for zip_file in daily_zip_files:
+        zip_name = os.path.basename(zip_file).replace('.zip', '')
+        if os.path.exists(f'{save_path}/{zip_name}'):
+            print(f'skipping {zip_name}')
+        else:
+            print(zip_name)
+            data = (pdx.read_xml(zip_file, root_key_list)
+                    .pipe(auto_separate_tables, key_columns))
+            data = convert_date_all_tables(data)
+            os.makedirs(f'{save_path}/{zip_name}')
             save_all_tables(data, zip_name)
             del data
