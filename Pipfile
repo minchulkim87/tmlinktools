@@ -10,6 +10,7 @@ pipenv-setup = "*"
 pyarrow = "*"
 pandas = "*"
 xmltodict = "*"
+pandas-read-xml = "*"
 
 [requires]
 python_version = "3.7"
