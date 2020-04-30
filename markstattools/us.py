@@ -9,8 +9,14 @@ import pandas_read_xml as pdx
 from pandas_read_xml import auto_separate_tables
 
 
+save_path = './data/us'
+if not os.path.exists(save_path):
+    os.makedirs(save_path)
+
+
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
 root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']
+key_columns = ['action-key', 'case-file|serial-number']
 
 
 def daterange(start_date: date, end_date: date) -> Iterator:
@@ -42,3 +48,29 @@ def convert_date_columns(df: pd.DataFrame) -> pd.DataFrame:
             df[column] = pd.to_datetime(df[column], format='%Y%m%d', errors='coerce')
     return df
 
+
+def convert_date_all_tables(data: dict) -> dict:
+    for key in data:
+        data[key] = data[key].pipe(convert_date_columns)
+    return data
+
+
+def save_all_tables(data: dict, folder_name: str) -> None:
+    for key in data:
+        data[key].to_parquet(f'{save_path}/{folder_name}/{key}.parquet', index=False)
+
+
+def download_all_historical() -> None:
+    historical_zip_files = get_historical_zip_file_path_list()
+    for zip_file in historical_zip_files:
+        zip_name = os.path.basename(zip_file).replace('.zip', '')
+        if os.path.exists(f'{save_path}/{folder_name}'):
+            print(f'skipping {zip_name}')
+        else:
+            os.makedirs(save_path)
+            print(zip_name)
+            data = (pdx.read_xml(zip_file, root_key_list)
+                    .pipe(auto_separate_tables, key_columns)
+                    .pipe(convert_date_all_tables))
+            save_all_tables(data, zip_name)
+            del data
