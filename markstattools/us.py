@@ -64,10 +64,10 @@ def download_all_historical() -> None:
     historical_zip_files = get_historical_zip_file_path_list()
     for zip_file in historical_zip_files:
         zip_name = os.path.basename(zip_file).replace('.zip', '')
-        if os.path.exists(f'{save_path}/{folder_name}'):
+        if os.path.exists(f'{save_path}/{zip_name}'):
             print(f'skipping {zip_name}')
         else:
-            os.makedirs(save_path)
+            os.makedirs(f'{save_path}/{zip_name}')
             print(zip_name)
             data = (pdx.read_xml(zip_file, root_key_list)
                     .pipe(auto_separate_tables, key_columns)
