@@ -70,7 +70,7 @@ def download_all_historical() -> None:
             os.makedirs(f'{save_path}/{zip_name}')
             print(zip_name)
             data = (pdx.read_xml(zip_file, root_key_list)
-                    .pipe(auto_separate_tables, key_columns)
-                    .pipe(convert_date_all_tables))
+                    .pipe(auto_separate_tables, key_columns))
+            data = convert_date_all_tables(data)
             save_all_tables(data, zip_name)
             del data
