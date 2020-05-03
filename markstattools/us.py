@@ -9,7 +9,7 @@ import pandas_read_xml as pdx
 from pandas_read_xml import auto_separate_tables
 
 
-save_path = './data/us'
+save_path = './downloads/us'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
