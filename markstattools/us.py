@@ -9,10 +9,15 @@ import pandas_read_xml as pdx
 from pandas_read_xml import auto_separate_tables
 
 
+# This is where the downloaded files will save.
 save_path = './downloads/us'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
+# This is where the combined data will save.
+data_path = './data/us'
+if not os.path.exists(data_path):
+    os.makedirs(data_path)
 
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
 root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']
@@ -60,22 +65,6 @@ def save_all_tables(data: dict, folder_name: str) -> None:
         data[key].to_parquet(f'{save_path}/{folder_name}/{key}.parquet', index=False)
 
 
-def download_all_historical() -> None:
-    historical_zip_files = get_historical_zip_file_path_list()
-    for zip_file in historical_zip_files:
-        zip_name = os.path.basename(zip_file).replace('.zip', '')
-        if os.path.exists(f'{save_path}/{zip_name}'):
-            print(f'skipping {zip_name}')
-        else:
-            print(zip_name)
-            data = (pdx.read_xml(zip_file, root_key_list)
-                    .pipe(auto_separate_tables, key_columns))
-            data = convert_date_all_tables(data)
-            os.makedirs(f'{save_path}/{zip_name}')
-            save_all_tables(data, zip_name)
-            del data
-
-
 def download_all() -> None:
     historical_zip_files = get_historical_zip_file_path_list()
     daily_zip_files = get_daily_zip_file_path_list()
@@ -83,11 +72,15 @@ def download_all() -> None:
     for zip_file in all_zip_files:
         zip_name = os.path.basename(zip_file).replace('.zip', '')
         if not os.path.exists(f'{save_path}/{zip_name}'):
-            print(f'Downloading: {zip_name}')
-            data = (pdx.read_xml(zip_file, root_key_list)
-                    .pipe(auto_separate_tables, key_columns))
-            data = convert_date_all_tables(data)
-            os.makedirs(f'{save_path}/{zip_name}')
-            save_all_tables(data, zip_name)
-            del data
+            try:
+                print(f'Downloading: {zip_name}')
+                data = (pdx.read_xml(zip_file, root_key_list)
+                        .pipe(auto_separate_tables, key_columns))
+                data = convert_date_all_tables(data)
+                os.makedirs(f'{save_path}/{zip_name}')
+                save_all_tables(data, zip_name)
+                del data
+            except:
+                print(f'Failed to download: {zip_name}')
     print('Done')
+
