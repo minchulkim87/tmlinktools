@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 from datetime import timedelta, date
 from typing import Callable, Iterator
 import pyarrow
@@ -84,3 +85,28 @@ def download_all() -> None:
                 print(f'Failed to download: {zip_name}')
     print('Done')
 
+
+def get_historical_download_folder_list() -> list:
+    name_base = 'apc18840407-20191231'
+    return [f"{save_path}{name_base}-{str(i).rjust(2, '0')}"
+            for i in range(1,66)]
+
+
+def get_daily_download_folder_list() -> list:
+    name_base = 'apc'
+    start_date = date(2020, 1, 1)
+    end_date = date.today() - timedelta(days=1)
+    return [f"{save_path}/{name_base}{_date.strftime('%y%m%d')}"
+            for _date in daterange(start_date, end_date)]
+
+
+def get_files_in_folder(folder:str, file_extension: str) -> list:
+    return glob.glob(f"{folder}/*.{file_extension}")
+
+
+def read_all_parquet_in_folder_as_dict(folder: str) -> dict:
+    data = {}
+    for parquet_file in get_files_in_folder(folder, 'parquet'):
+        table_name = os.path.basename(parquet_file).replace('.parquet', '')
+        data[table_name] = pd.read_parquet(parquet_file)
+    return data
