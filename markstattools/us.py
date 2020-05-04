@@ -20,9 +20,15 @@ data_path = './data/us'
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
+# These are some basic information required to obtain the data from the USPTO website.
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
 root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']
 key_columns = ['action-key', 'case-file|serial-number']
+
+
+# -------------------------------------------------------------------------------------
+# These functions will help download all the files and save them locally.
+# -------------------------------------------------------------------------------------
 
 
 def daterange(start_date: date, end_date: date) -> Iterator:
@@ -84,6 +90,11 @@ def download_all() -> None:
             except:
                 print(f'Failed to download: {zip_name}')
     print('Done')
+
+
+# -------------------------------------------------------------------------------------
+# These functions will help read the downloaded files and combine them.
+# -------------------------------------------------------------------------------------
 
 
 def get_historical_download_folder_list() -> list:
