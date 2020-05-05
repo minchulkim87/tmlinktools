@@ -1,9 +1,10 @@
 import os
 import sys
 import glob
-from datetime import timedelta, date
+from tqdm import tqdm
 from typing import Callable, Iterator
 import pyarrow
+from datetime import timedelta, date
 import numpy as np
 import pandas as pd
 import pandas_read_xml as pdx
@@ -67,9 +68,9 @@ def convert_date_all_tables(data: dict) -> dict:
     return data
 
 
-def save_all_tables(data: dict, folder_name: str) -> None:
+def save_all_tables(data: dict, path: str, folder_name: str) -> None:
     for key in data:
-        data[key].to_parquet(f'{save_path}/{folder_name}/{key}.parquet', index=False)
+        data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet', index=False)
 
 
 def download_all() -> None:
@@ -85,7 +86,7 @@ def download_all() -> None:
                         .pipe(auto_separate_tables, key_columns))
                 data = convert_date_all_tables(data)
                 os.makedirs(f'{save_path}/{zip_name}')
-                save_all_tables(data, zip_name)
+                save_all_tables(data, save_path, zip_name)
                 del data
             except:
                 print(f'Failed to download: {zip_name}')
@@ -99,7 +100,7 @@ def download_all() -> None:
 
 def get_historical_download_folder_list() -> list:
     name_base = 'apc18840407-20191231'
-    return [f"{save_path}{name_base}-{str(i).rjust(2, '0')}"
+    return [f"{save_path}/{name_base}-{str(i).rjust(2, '0')}"
             for i in range(1,66)]
 
 
@@ -115,9 +116,17 @@ def get_files_in_folder(folder:str, file_extension: str) -> list:
     return glob.glob(f"{folder}/*.{file_extension}")
 
 
-def read_all_parquet_in_folder_as_dict(folder: str) -> dict:
-    data = {}
-    for parquet_file in get_files_in_folder(folder, 'parquet'):
-        table_name = os.path.basename(parquet_file).replace('.parquet', '')
-        data[table_name] = pd.read_parquet(parquet_file)
-    return data
+def combine_all_historical_data():
+    for folder in get_historical_download_folder_list():
+        for parquet_file in get_files_in_folder(folder, 'parquet'):
+            file_name = os.path.basename(parquet_file)
+            target_file_path = f'{data_path}/{file_name}'
+            if os.path.exists(target_file_path):
+                (pd.read_parquet(target_file_path)
+                 .append(pd.read_parquet(parquet_file).drop(columns=['action-key']), sort=True, ignore_index=True)
+                 .to_parquet(target_file_path, index=False))
+            else:
+                (pd.read_parquet(parquet_file)
+                 .drop(columns=['action-key'])
+                 .to_parquet(target_file_path, index=False))
+
