@@ -1,30 +1,14 @@
 import os
 import sys
 import glob
-from tqdm import tqdm
 from typing import Callable, Iterator
+import json
 import pyarrow
 from datetime import timedelta, date
 import numpy as np
 import pandas as pd
 import pandas_read_xml as pdx
 from pandas_read_xml import auto_separate_tables
-
-
-# This is where the downloaded files will save.
-save_path = './downloads/us'
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
-# This is where the combined data will save.
-data_path = './data/us'
-if not os.path.exists(data_path):
-    os.makedirs(data_path)
-
-# These are some basic information required to obtain the data from the USPTO website.
-link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
-root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']
-key_columns = ['action-key', 'case-file|serial-number']
 
 
 # -------------------------------------------------------------------------------------
@@ -90,7 +74,6 @@ def download_all() -> None:
                 del data
             except:
                 print(f'Failed to download: {zip_name}')
-    print('Done')
 
 
 # -------------------------------------------------------------------------------------
@@ -131,20 +114,61 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
             .pipe(convert_date_columns))
 
 
-def combine_all_historical_data():
-    for folder in get_historical_download_folder_list():
-        codes.to_parquet(f'{data_path}/codes.parquet', index=False)
-        for parquet_file in get_files_in_folder(folder, 'parquet'):
-            file_name = os.path.basename(parquet_file)
-            target_file_path = f'{data_path}/{file_name}'
-            if os.path.exists(target_file_path):
-                (pd.read_parquet(target_file_path)
-                 .append(pd.read_parquet(parquet_file).pipe(clean), sort=True, ignore_index=True)
-                 .to_parquet(target_file_path, index=False))
-            else:
-                (pd.read_parquet(parquet_file)
-                 .pipe(clean)
-                 .to_parquet(target_file_path, index=False))
+def get_next_folder_name() -> str:
+    if os.path.exists(f'{data_path}/updates.json'):
+        with open(f'{data_path}/updates.json', 'r') as jf:
+            latest = json.loads(jf.read())['latest']
+        download_folder_list = get_historical_download_folder_list() + get_daily_download_folder_list()
+        index = download_folder_list.index(latest)
+        if index < len(download_folder_list) - 1:
+            return download_folder_list[index+1]
+        else:
+            return None
+    else:
+        return f'{save_path}/apc18840407-20191231-01'
+
+
+def write_latest_folder_name(folder_name: str) -> None:
+    with open(f'{data_path}/updates.json', 'w') as jf:
+        json.dumps({'latest': folder_name}, jf)
+
+
+# -------------------------------------------------------------------------------------
+# This functions will automate everything.
+# -------------------------------------------------------------------------------------
+
+
+def update_all() -> None:
+    download_all()
+    update_folder = get_next_folder_name()
+    while update_folder:
+        try:
+            print(f"Merging in: {update_folder}")
+
+            for parquet_file in get_files_in_folder(update_folder, 'parquet'):
+                file_name = os.path.basename(parquet_file)
+                target_file_path = f'{data_path}/{file_name}'
+                if os.path.exists(target_file_path):
+                    (pd.read_parquet(target_file_path)
+                     .append(pd.read_parquet(parquet_file).pipe(clean), sort=True, ignore_index=True)
+                     .drop_duplicates()
+                     .to_parquet(target_file_path, index=False))
+                else:
+                    (pd.read_parquet(parquet_file)
+                    .pipe(clean)
+                    .to_parquet(target_file_path, index=False))
+
+            write_latest_folder_name(update_folder)
+            update_folder = get_next_folder_name()
+        except:
+            print("failed")
+            update_folder = None
+        print("Done")
+
+
+# -------------------------------------------------------------------------------------
+# These are relevant variables required for all of the above.
+# -------------------------------------------------------------------------------------
 
 
 codes = pd.DataFrame(data={
@@ -2301,3 +2325,19 @@ codes = pd.DataFrame(data={
         "Services"
     ]
 })
+
+# This is where the downloaded files will save.
+save_path = './downloads/us'
+if not os.path.exists(save_path):
+    os.makedirs(save_path)
+
+# This is where the combined data will save.
+data_path = './data/us'
+if not os.path.exists(data_path):
+    os.makedirs(data_path)
+    codes.to_parquet(f'{data_path}/codes.parquet', index=False)
+
+# These are some basic information required to obtain the data from the USPTO website.
+link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
+root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']
+key_columns = ['action-key', 'case-file|serial-number']
