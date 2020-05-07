@@ -53,25 +53,22 @@ def convert_date_all_tables(data: dict) -> dict:
 
 
 def save_all_tables(data: dict, path: str, folder_name: str) -> None:
+    if not os.path.exists(f'{path}/{folder_name}'):
+        os.makedirs(f'{path}/{folder_name}')
     for key in data:
         data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet', index=False)
 
 
 def download_all() -> None:
-    historical_zip_files = get_historical_zip_file_path_list()
-    daily_zip_files = get_daily_zip_file_path_list()
-    all_zip_files = historical_zip_files + daily_zip_files
-    for zip_file in all_zip_files:
+    for zip_file in get_historical_zip_file_path_list() + get_daily_zip_file_path_list():
         zip_name = os.path.basename(zip_file).replace('.zip', '')
         if not os.path.exists(f'{save_path}/{zip_name}'):
             try:
                 print(f'Downloading: {zip_name}')
-                data = (pdx.read_xml(zip_file, root_key_list)
-                        .pipe(auto_separate_tables, key_columns))
-                data = convert_date_all_tables(data)
-                os.makedirs(f'{save_path}/{zip_name}')
-                save_all_tables(data, save_path, zip_name)
-                del data
+                (pdx.read_xml(zip_file, root_key_list)
+                 .pipe(auto_separate_tables, key_columns)
+                 .pipe(convert_date_all_tables)
+                 .pipe(save_all_tables, save_path, zip_name))
             except:
                 print(f'Failed to download: {zip_name}')
 
@@ -115,7 +112,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame, keys_in_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
-    return remove_from_df.loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :].reset_index()
+    return remove_from_df.loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :].reset_index(drop=True)
 
 
 def delete_then_append_dataframe(old_df: pd.DataFrame, new_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
