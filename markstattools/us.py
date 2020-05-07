@@ -130,7 +130,7 @@ def get_next_folder_name() -> str:
 
 def write_latest_folder_name(folder_name: str) -> None:
     with open(f'{data_path}/updates.json', 'w') as jf:
-        json.dumps({'latest': folder_name}, jf)
+        json.dump({'latest': folder_name}, jf)
 
 
 # -------------------------------------------------------------------------------------
