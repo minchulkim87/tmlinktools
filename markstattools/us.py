@@ -115,7 +115,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame, keys_in_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
-    return remove_from_df.loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique), :].reset_index()
+    return remove_from_df.loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :].reset_index()
 
 
 def delete_then_append_dataframe(old_df: pd.DataFrame, new_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
@@ -160,7 +160,7 @@ def update_all() -> None:
                     (delete_then_append_dataframe(
                         pd.read_parquet(target_file_path),
                         pd.read_parquet(parquet_file).pipe(clean),
-                        'case-file|serial-number'
+                        'serial-number'
                     ).to_parquet(target_file_path, index=False))
                 else:
                     (pd.read_parquet(parquet_file)
@@ -169,9 +169,10 @@ def update_all() -> None:
 
             write_latest_folder_name(update_folder)
             update_folder = get_next_folder_name()
-        except:
+        except Exception as error:
             print("failed")
             update_folder = None
+            raise error
         print("Done")
 
 
