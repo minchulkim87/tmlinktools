@@ -34,6 +34,7 @@ setup(
         "python-dateutil==2.8.1",
         "pytz==2020.1",
         "six==1.14.0",
+        "tqdm==4.46.0",
         "xmltodict==0.12.0",
     ],
 )

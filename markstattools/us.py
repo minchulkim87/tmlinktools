@@ -114,6 +114,14 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
             .pipe(convert_date_columns))
 
 
+def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame, keys_in_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
+    return remove_from_df.loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique), :].reset_index()
+
+
+def delete_then_append_dataframe(old_df: pd.DataFrame, new_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
+    return removed_keys_from_one_dataframe_in_another(old_df, new_df, key_column).append(new_df, sort=True, ignore_index=True)
+
+
 def get_next_folder_name() -> str:
     if os.path.exists(f'{data_path}/updates.json'):
         with open(f'{data_path}/updates.json', 'r') as jf:
@@ -149,14 +157,15 @@ def update_all() -> None:
                 file_name = os.path.basename(parquet_file)
                 target_file_path = f'{data_path}/{file_name}'
                 if os.path.exists(target_file_path):
-                    (pd.read_parquet(target_file_path)
-                     .append(pd.read_parquet(parquet_file).pipe(clean), sort=True, ignore_index=True)
-                     .drop_duplicates()
-                     .to_parquet(target_file_path, index=False))
+                    (delete_then_append_dataframe(
+                        pd.read_parquet(target_file_path),
+                        pd.read_parquet(parquet_file).pipe(clean),
+                        'case-file|serial-number'
+                    ).to_parquet(target_file_path, index=False))
                 else:
                     (pd.read_parquet(parquet_file)
-                    .pipe(clean)
-                    .to_parquet(target_file_path, index=False))
+                     .pipe(clean)
+                     .to_parquet(target_file_path, index=False))
 
             write_latest_folder_name(update_folder)
             update_folder = get_next_folder_name()
