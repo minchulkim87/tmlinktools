@@ -1,5 +1,6 @@
 import os
 import sys
+import gc
 import glob
 from typing import Callable, Iterator
 import json
@@ -145,6 +146,7 @@ def write_latest_folder_name(folder_name: str) -> None:
 
 def update_all() -> None:
     download_all()
+    gc.collect()
     update_folder = get_next_folder_name()
     while update_folder:
         try:
@@ -170,7 +172,9 @@ def update_all() -> None:
             print("failed")
             update_folder = None
             raise error
-        print("Done")
+        finally:
+            gc.collect()
+    print("Done")
 
 
 # -------------------------------------------------------------------------------------
@@ -2348,3 +2352,7 @@ if not os.path.exists(data_path):
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
 root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']
 key_columns = ['action-key', 'case-file|serial-number']
+
+
+if __name__ == '__main__':
+    update_all()
