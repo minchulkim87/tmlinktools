@@ -41,16 +41,28 @@ def get_daily_zip_file_path_list() -> list:
 
 
 def convert_date_columns(df: pd.DataFrame) -> pd.DataFrame:
-    for column in df.columns:
-        if 'date' in column:
-            df.loc[:, column] = pd.to_datetime(df.loc[:, column], format='%Y%m%d', errors='coerce')
-    return df
+    return (df.apply(lambda column:
+                     pd.to_datetime(column, format='%Y%m%d', errors='coerce')
+                     if 'date' in column.name
+                     else column))
 
 
-def convert_date_all_tables(data: dict) -> dict:
-    for key in data:
-        data[key] = data[key].pipe(convert_date_columns)
-    return data
+def convert_boolean_columns(df: pd.DataFrame) -> pd.DataFrame:
+    return (df.apply(lambda column:
+                     column.fillna(False).replace('F', False).replace('T', True)
+                     if column.name.endswith('-in')
+                     else column))
+
+
+def clean(df: pd.DataFrame) -> pd.DataFrame:
+    return (df
+            .pipe(convert_boolean_columns)
+            .pipe(convert_date_columns))
+
+
+def clean_all_tables(data: dict) -> dict:
+    return {table_name: clean(table_data)
+            for table_name, table_data in data.items()}
 
 
 def save_all_tables(data: dict, path: str, folder_name: str) -> None:
@@ -66,12 +78,18 @@ def download_all() -> None:
         if not os.path.exists(f'{save_path}/{zip_name}'):
             try:
                 print(f'Downloading: {zip_name}')
-                (pdx.read_xml(zip_file, root_key_list)
-                 .pipe(auto_separate_tables, key_columns)
-                 .pipe(convert_date_all_tables)
-                 .pipe(save_all_tables, save_path, zip_name))
-            except:
+                save_all_tables(
+                    clean_all_tables(
+                        pdx.read_xml(zip_file, root_key_list)
+                        .pipe(auto_separate_tables, key_columns)
+                    ),
+                    save_path,
+                    zip_name
+                )
+                gc.collect()
+            except Exception as error:
                 print(f'Failed to download: {zip_name}')
+                raise error
 
 
 # -------------------------------------------------------------------------------------
@@ -97,27 +115,25 @@ def get_files_in_folder(folder:str, file_extension: str) -> list:
     return glob.glob(f"{folder}/*.{file_extension}")
 
 
-def convert_boolean_columns(df: pd.DataFrame) -> pd.DataFrame:
-    for column in df.columns:
-        if column.endswith('-in'): # -in is for indicators
-            df.loc[:, column] = df.loc[:, column].fillna(False).replace('F', False).replace('T', True)
-    return df
-
-
-def clean(df: pd.DataFrame) -> pd.DataFrame:
+def remove_unnecessary(df: pd.DataFrame) -> pd.DataFrame:
     return (df
             .loc[:, df.columns != 'action-key']
-            .drop_duplicates()
-            .pipe(convert_boolean_columns)
-            .pipe(convert_date_columns))
+            .drop_duplicates())
 
 
-def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame, keys_in_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
-    return remove_from_df.loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :].reset_index(drop=True)
+def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
+                                               keys_in_df: pd.DataFrame,
+                                               key_column: str) -> pd.DataFrame:
+    return (remove_from_df
+            .loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :]
+            .reset_index(drop=True))
 
 
-def delete_then_append_dataframe(old_df: pd.DataFrame, new_df: pd.DataFrame, key_column: str) -> pd.DataFrame:
-    return removed_keys_from_one_dataframe_in_another(old_df, new_df, key_column).append(new_df, sort=True, ignore_index=True)
+def delete_then_append_dataframe(old_df: pd.DataFrame,
+                                 new_df: pd.DataFrame,
+                                 key_column: str) -> pd.DataFrame:
+    return (removed_keys_from_one_dataframe_in_another(old_df, new_df, key_column)
+            .append(new_df, sort=True, ignore_index=True))
 
 
 def get_next_folder_name() -> str:
@@ -158,22 +174,21 @@ def update_all() -> None:
                 if os.path.exists(target_file_path):
                     (delete_then_append_dataframe(
                         pd.read_parquet(target_file_path),
-                        pd.read_parquet(parquet_file).pipe(clean),
-                        'serial-number'
-                    ).to_parquet(target_file_path, index=False))
+                        pd.read_parquet(parquet_file).pipe(remove_unnecessary),
+                        'serial-number')
+                     .to_parquet(target_file_path, index=False))
                 else:
                     (pd.read_parquet(parquet_file)
-                     .pipe(clean)
+                     .pipe(remove_unnecessary)
                      .to_parquet(target_file_path, index=False))
 
             write_latest_folder_name(update_folder)
+            gc.collect()
             update_folder = get_next_folder_name()
         except Exception as error:
             print("failed")
             update_folder = None
             raise error
-        finally:
-            gc.collect()
     print("Done")
 
 
