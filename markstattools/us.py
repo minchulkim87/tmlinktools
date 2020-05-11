@@ -75,6 +75,9 @@ def save_all_tables(data: dict, path: str, folder_name: str) -> None:
         data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet', index=False)
 
 
+# This function is the high-level wrapper for the download process.
+
+
 def download_all() -> None:
     for zip_file in get_historical_zip_file_path_list() + get_daily_zip_file_path_list():
         zip_name = os.path.basename(zip_file).replace('.zip', '')
@@ -149,6 +152,9 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
                       new_df])
 
 
+# These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
+
+
 def save(df: dd.DataFrame, path: str) -> None:
     df.to_parquet(path, engine='pyarrow', compression='snappy')
 
@@ -157,23 +163,6 @@ def commit(temp_file_path: str, target_file_path: str) -> None:
     shutil.rmtree(target_file_path)
     shutil.copytree(temp_file_path, target_file_path)
     shutil.rmtree(temp_file_path)
-
-
-@dask.delayed
-def update_file(file_path: str) -> None:
-    table_name = os.path.basename(file_path).replace('.parquet', '')
-    temp_file_path = f'{temp_path}/{table_name}'
-    target_file_path = f'{data_path}/{table_name}'
-    if os.path.exists(target_file_path):
-        # first combine then save to temp folder
-        (delete_then_append_dataframe(dd.read_parquet(target_file_path),
-                                      dd.read_parquet(file_path).pipe(remove_unnecessary))
-        .pipe(save, temp_file_path))
-        # then commit
-        commit(temp_file_path=temp_file_path, target_file_path=target_file_path)
-    else:
-        (dd.read_parquet(file_path).pipe(remove_unnecessary)
-        .pipe(save, target_file_path))
 
 
 def get_next_folder_name() -> str:
@@ -195,8 +184,28 @@ def write_latest_folder_name(folder_name: str) -> None:
         json.dump({'latest': folder_name}, jf)
 
 
+# This function is the high-level wrap for the merging process.
+
+
+@dask.delayed
+def update_file(file_path: str) -> None:
+    table_name = os.path.basename(file_path).replace('.parquet', '')
+    temp_file_path = f'{temp_path}/{table_name}'
+    target_file_path = f'{data_path}/{table_name}'
+    if os.path.exists(target_file_path):
+        # first combine then save to temp folder
+        (delete_then_append_dataframe(dd.read_parquet(target_file_path),
+                                      dd.read_parquet(file_path).pipe(remove_unnecessary))
+        .pipe(save, temp_file_path))
+        # then commit
+        commit(temp_file_path=temp_file_path, target_file_path=target_file_path)
+    else:
+        (dd.read_parquet(file_path).pipe(remove_unnecessary)
+        .pipe(save, target_file_path))
+
+
 # -------------------------------------------------------------------------------------
-# This functions will automate everything.
+# This function will automate everything.
 # -------------------------------------------------------------------------------------
 
 
