@@ -9,6 +9,7 @@ import pyarrow
 from datetime import timedelta, date
 import numpy as np
 import pandas as pd
+import dask
 import dask.dataframe as dd
 import pandas_read_xml as pdx
 from pandas_read_xml import auto_separate_tables
@@ -128,28 +129,52 @@ def remove_unnecessary(df: dd.DataFrame) -> dd.DataFrame:
 
 
 def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
-                                               keys_in_df: dd.DataFrame,
-                                               key_column: str) -> pd.DataFrame:
+                                               keys_in_df: dd.DataFrame) -> pd.DataFrame:
     return (remove_from_df
-            .loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :])
+            .loc[~remove_from_df['serial-number'].isin(keys_in_df['serial-number'].unique()), :])
 
 
 def removed_keys_from_one_dataframe_in_another_dask(remove_from_df: dd.DataFrame,
-                                                    keys_in_df: dd.DataFrame,
-                                                    key_column: str) -> dd.DataFrame:
+                                                    keys_in_df: dd.DataFrame) -> dd.DataFrame:
     return (remove_from_df
             .map_partitions(
                 removed_keys_from_one_dataframe_in_another,
-                keys_in_df=keys_in_df,
-                key_column=key_column
+                keys_in_df=keys_in_df
             ))
 
 
 def delete_then_append_dataframe(old_df: dd.DataFrame,
-                                 new_df: dd.DataFrame,
-                                 key_column: str) -> dd.DataFrame:
-    return dd.concat([removed_keys_from_one_dataframe_in_another_dask(old_df, new_df, key_column),
+                                 new_df: dd.DataFrame) -> dd.DataFrame:
+    return dd.concat([removed_keys_from_one_dataframe_in_another_dask(old_df, new_df),
                       new_df])
+
+
+def save(df: dd.DataFrame, path: str) -> None:
+    (df.repartition(partition_size="1024MB")
+       .to_parquet(path, engine='pyarrow', compression='snappy'))
+
+
+def commit(temp_file_path: str, target_file_path: str) -> None:
+    shutil.rmtree(target_file_path)
+    shutil.copytree(temp_file_path, target_file_path)
+    shutil.rmtree(temp_file_path)
+
+
+@dask.delayed
+def update_file(file_path: str) -> None:
+    table_name = os.path.basename(file_path).replace('.parquet', '')
+    temp_file_path = f'{temp_path}/{table_name}'
+    target_file_path = f'{data_path}/{table_name}'
+    if os.path.exists(target_file_path):
+        # first combine then save to temp folder
+        (delete_then_append_dataframe(dd.read_parquet(target_file_path),
+                                      dd.read_parquet(file_path).pipe(remove_unnecessary))
+        .pipe(save, temp_file_path))
+        # then commit
+        commit(temp_file_path=temp_file_path, target_file_path=target_file_path)
+    else:
+        (dd.read_parquet(file_path).pipe(remove_unnecessary)
+        .pipe(save, target_file_path))
 
 
 def get_next_folder_name() -> str:
@@ -184,31 +209,11 @@ def update_all() -> None:
         try:
             print(f"Merging in: {update_folder}")
 
-            parquet_files = get_files_in_folder(update_folder, 'parquet')
-            for parquet_file in parquet_files:
-                table_name = os.path.basename(parquet_file).replace('.parquet', '')
-                temp_file_path = f'{temp_path}/{table_name}'
-                target_file_path = f'{data_path}/{table_name}'
-                if os.path.exists(target_file_path):
-                    # first combine then save to temp folder
-                    (delete_then_append_dataframe(
-                        dd.read_parquet(target_file_path),
-                        dd.read_parquet(parquet_file).pipe(remove_unnecessary),
-                        'serial-number')
-                    .repartition(partition_size="1024MB")
-                    .to_parquet(temp_file_path, engine='pyarrow', compression='snappy'))
-                    # delete target_file_path and move the temp files over.
-                    shutil.rmtree(target_file_path)
-                    shutil.copytree(temp_file_path, target_file_path)
-                    shutil.rmtree(temp_file_path)
-                else:
-                    (dd.read_parquet(parquet_file)
-                    .pipe(remove_unnecessary)
-                    .repartition(partition_size="1024MB")
-                    .to_parquet(target_file_path, engine='pyarrow', compression='snappy'))
-                gc.collect()
-            
+            updates = [update_file(parquet_file) for parquet_file in get_files_in_folder(update_folder, 'parquet')]
+            dask.compute(*updates)
+
             write_latest_folder_name(update_folder)
+            gc.collect()
             update_folder = get_next_folder_name()
         except Exception as error:
             print("failed")
