@@ -12,6 +12,7 @@ pandas = "*"
 xmltodict = "*"
 pandas-read-xml = "*"
 tqdm = "*"
+dask = {extras = ["complete"],version = "*"}
 
 [requires]
 python_version = "3.7"

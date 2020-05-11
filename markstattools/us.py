@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import gc
 import glob
 from typing import Callable, Iterator
@@ -8,6 +9,7 @@ import pyarrow
 from datetime import timedelta, date
 import numpy as np
 import pandas as pd
+import dask.dataframe as dd
 import pandas_read_xml as pdx
 from pandas_read_xml import auto_separate_tables
 
@@ -111,8 +113,12 @@ def get_daily_download_folder_list() -> list:
             for _date in daterange(start_date, end_date)]
 
 
-def get_files_in_folder(folder:str, file_extension: str) -> list:
+def get_files_in_folder(folder: str, file_extension: str) -> list:
     return glob.glob(f"{folder}/*.{file_extension}")
+
+
+def get_subfolders(folder: str) -> list:
+    return [f.name for f in os.scandir(folder) if f.is_dir()]
 
 
 def remove_unnecessary(df: pd.DataFrame) -> pd.DataFrame:
@@ -129,11 +135,20 @@ def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
             .reset_index(drop=True))
 
 
-def delete_then_append_dataframe(old_df: pd.DataFrame,
+def removed_keys_from_one_dataframe_in_another_dask(remove_from_df: dd.DataFrame,
+                                               keys_in_df: pd.DataFrame,
+                                               key_column: str) -> dd.DataFrame:
+    return (remove_from_df.map_partitions(
+                removed_keys_from_one_dataframe_in_another,
+                keys_in_df=keys_in_df,
+                key_column=key_column))
+
+
+def delete_then_append_dataframe(old_df: dd.DataFrame,
                                  new_df: pd.DataFrame,
-                                 key_column: str) -> pd.DataFrame:
-    return (removed_keys_from_one_dataframe_in_another(old_df, new_df, key_column)
-            .append(new_df, sort=True, ignore_index=True))
+                                 key_column: str) -> dd.DataFrame:
+    return dd.concat([removed_keys_from_one_dataframe_in_another_dask(old_df, new_df, key_column),
+                      new_df])
 
 
 def get_next_folder_name() -> str:
@@ -169,21 +184,27 @@ def update_all() -> None:
             print(f"Merging in: {update_folder}")
 
             for parquet_file in get_files_in_folder(update_folder, 'parquet'):
-                file_name = os.path.basename(parquet_file)
-                target_file_path = f'{data_path}/{file_name}'
+                table_name = os.path.basename(parquet_file).replace('.parquet', '')
+                temp_file_path = f'{temp_path}/{table_name}'
+                target_file_path = f'{data_path}/{table_name}'
                 if os.path.exists(target_file_path):
+                    # first combine then save to temp folder
                     (delete_then_append_dataframe(
-                        pd.read_parquet(target_file_path),
-                        pd.read_parquet(parquet_file).pipe(remove_unnecessary),
+                        dd.read_parquet(target_file_path),
+                        pd.read_parquet(parquet_file).pipe(remove_unnecessary), # note that downloaded files are read as pandas
                         'serial-number')
-                     .to_parquet(target_file_path, index=False))
+                     .to_parquet(temp_file_path))
+                    # delete target_file_path and move the temp files over.
+                    shutil.rmtree(target_file_path)
+                    shutil.copytree(temp_file_path, target_file_path)
+                    shutil.rmtree(temp_file_path)
                 else:
                     (pd.read_parquet(parquet_file)
                      .pipe(remove_unnecessary)
                      .to_parquet(target_file_path, index=False))
+                gc.collect()
 
             write_latest_folder_name(update_folder)
-            gc.collect()
             update_folder = get_next_folder_name()
         except Exception as error:
             print("failed")
@@ -197,7 +218,7 @@ def update_all() -> None:
 # -------------------------------------------------------------------------------------
 
 
-codes = pd.DataFrame(data={
+codes = dd.from_pandas(pd.DataFrame(data={
     'table_name': [
         "madrid-international-filing-requests",
         "madrid-international-filing-requests",
@@ -2350,18 +2371,23 @@ codes = pd.DataFrame(data={
         "Goods",
         "Services"
     ]
-})
+}), npartitions=1)
 
 # This is where the downloaded files will save.
 save_path = './downloads/us'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
+# This is where the temporary files will save.
+temp_path = './temp/us'
+if not os.path.exists(temp_path):
+    os.makedirs(temp_path)
+
 # This is where the combined data will save.
 data_path = './data/us'
 if not os.path.exists(data_path):
     os.makedirs(data_path)
-    codes.to_parquet(f'{data_path}/codes.parquet', index=False)
+    codes.to_parquet(f'{data_path}/codes', index=False)
 
 # These are some basic information required to obtain the data from the USPTO website.
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
