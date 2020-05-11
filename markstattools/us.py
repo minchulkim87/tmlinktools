@@ -150,8 +150,7 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 
 
 def save(df: dd.DataFrame, path: str) -> None:
-    (df.repartition(partition_size="1024MB")
-       .to_parquet(path, engine='pyarrow', compression='snappy'))
+    df.to_parquet(path, engine='pyarrow', compression='snappy')
 
 
 def commit(temp_file_path: str, target_file_path: str) -> None:
