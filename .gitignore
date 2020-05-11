@@ -2,3 +2,7 @@ downloads/
 temp/
 data/
 *.ipynb
+dist/
+build/
+*.egg-info
+*.egg

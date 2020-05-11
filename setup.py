@@ -59,7 +59,6 @@ setup(
         "tblib==1.6.0",
         "toolz==0.10.0",
         "tornado==6.0.4; python_version < '3.8'",
-        "tqdm==4.46.0",
         "typing-extensions==3.7.4.2",
         "urllib3==1.25.9",
         "xmltodict==0.12.0",

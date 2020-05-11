@@ -121,31 +121,32 @@ def get_subfolders(folder: str) -> list:
     return [f.name for f in os.scandir(folder) if f.is_dir()]
 
 
-def remove_unnecessary(df: pd.DataFrame) -> pd.DataFrame:
+def remove_unnecessary(df: dd.DataFrame) -> dd.DataFrame:
     return (df
             .loc[:, df.columns != 'action-key']
             .drop_duplicates())
 
 
 def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
-                                               keys_in_df: pd.DataFrame,
+                                               keys_in_df: dd.DataFrame,
                                                key_column: str) -> pd.DataFrame:
     return (remove_from_df
-            .loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :]
-            .reset_index(drop=True))
+            .loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :])
 
 
 def removed_keys_from_one_dataframe_in_another_dask(remove_from_df: dd.DataFrame,
-                                               keys_in_df: pd.DataFrame,
-                                               key_column: str) -> dd.DataFrame:
-    return (remove_from_df.map_partitions(
+                                                    keys_in_df: dd.DataFrame,
+                                                    key_column: str) -> dd.DataFrame:
+    return (remove_from_df
+            .map_partitions(
                 removed_keys_from_one_dataframe_in_another,
                 keys_in_df=keys_in_df,
-                key_column=key_column))
+                key_column=key_column
+            ))
 
 
 def delete_then_append_dataframe(old_df: dd.DataFrame,
-                                 new_df: pd.DataFrame,
+                                 new_df: dd.DataFrame,
                                  key_column: str) -> dd.DataFrame:
     return dd.concat([removed_keys_from_one_dataframe_in_another_dask(old_df, new_df, key_column),
                       new_df])
@@ -183,7 +184,8 @@ def update_all() -> None:
         try:
             print(f"Merging in: {update_folder}")
 
-            for parquet_file in get_files_in_folder(update_folder, 'parquet'):
+            parquet_files = get_files_in_folder(update_folder, 'parquet')
+            for parquet_file in parquet_files:
                 table_name = os.path.basename(parquet_file).replace('.parquet', '')
                 temp_file_path = f'{temp_path}/{table_name}'
                 target_file_path = f'{data_path}/{table_name}'
@@ -191,19 +193,21 @@ def update_all() -> None:
                     # first combine then save to temp folder
                     (delete_then_append_dataframe(
                         dd.read_parquet(target_file_path),
-                        pd.read_parquet(parquet_file).pipe(remove_unnecessary), # note that downloaded files are read as pandas
+                        dd.read_parquet(parquet_file).pipe(remove_unnecessary),
                         'serial-number')
-                     .to_parquet(temp_file_path))
+                    .repartition(partition_size="1024MB")
+                    .to_parquet(temp_file_path, engine='pyarrow', compression='snappy'))
                     # delete target_file_path and move the temp files over.
                     shutil.rmtree(target_file_path)
                     shutil.copytree(temp_file_path, target_file_path)
                     shutil.rmtree(temp_file_path)
                 else:
-                    (pd.read_parquet(parquet_file)
-                     .pipe(remove_unnecessary)
-                     .to_parquet(target_file_path, index=False))
+                    (dd.read_parquet(parquet_file)
+                    .pipe(remove_unnecessary)
+                    .repartition(partition_size="1024MB")
+                    .to_parquet(target_file_path, engine='pyarrow', compression='snappy'))
                 gc.collect()
-
+            
             write_latest_folder_name(update_folder)
             update_folder = get_next_folder_name()
         except Exception as error:
@@ -2387,7 +2391,7 @@ if not os.path.exists(temp_path):
 data_path = './data/us'
 if not os.path.exists(data_path):
     os.makedirs(data_path)
-    codes.to_parquet(f'{data_path}/codes', index=False)
+    codes.to_parquet(f'{data_path}/codes', engine='pyarrow', compression='snappy')
 
 # These are some basic information required to obtain the data from the USPTO website.
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
