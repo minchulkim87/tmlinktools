@@ -45,7 +45,7 @@ def get_daily_zip_file_path_list() -> list:
 
 def convert_date_columns(df: pd.DataFrame) -> pd.DataFrame:
     return (df.apply(lambda column:
-                     pd.to_datetime(column, format='%Y%m%d', errors='coerce')
+                     pd.to_datetime(column, format='%Y%m%d', errors='coerce', unit='D')
                      if 'date' in column.name
                      else column))
 
@@ -156,7 +156,10 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 
 
 def save(df: dd.DataFrame, path: str) -> None:
-    df.to_parquet(path, engine='pyarrow', compression='snappy')
+    df = df.map_partitions(clean)
+    if df.npartitions > 40:
+        df = df.repartition(npartitions=20)
+    df.to_parquet(path, engine='pyarrow', compression='snappy', write_index=False)
 
 
 def commit(temp_file_path: str, target_file_path: str) -> None:
