@@ -45,7 +45,7 @@ def get_daily_zip_file_path_list() -> list:
 
 def convert_date_columns(df: pd.DataFrame) -> pd.DataFrame:
     return (df.apply(lambda column:
-                     pd.to_datetime(column, format='%Y%m%d', errors='coerce', unit='D')
+                     pd.to_datetime(column, format='%Y%m%d', errors='coerce')
                      if 'date' in column.name
                      else column))
 
@@ -156,11 +156,13 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 
 
 def save(df: dd.DataFrame, path: str) -> None:
-    df = df.map_partitions(clean)
-    if df.npartitions > 120:
-        print("Repartitioning, this can take a while.")
-        df = df.repartition(npartitions=60)
-    df.to_parquet(path, engine='pyarrow', compression='snappy', allow_truncated_timestamps=True, write_index=False)
+    (df
+     .map_partitions(clean)
+     .to_parquet(path,
+                 engine='pyarrow',
+                 compression='snappy',
+                 allow_truncated_timestamps=True,
+                 write_index=False))
 
 
 def commit(temp_file_path: str, target_file_path: str) -> None:
@@ -208,7 +210,7 @@ def update_file(file_path: str) -> None:
         .pipe(save, target_file_path))
 
 
-# This is an optional extra function to combine the parquet files into one file each.
+# This is an extra function to combine the parquet files into one file each.
 def make_each_table_as_single_file() -> None:
     tables = get_subfolders(data_path)
     for table in tables:
@@ -219,6 +221,30 @@ def make_each_table_as_single_file() -> None:
                      compression='snappy',
                      allow_truncated_timestamps=True,
                      index=False))
+
+
+# This is an optional function to repartition the parquet files using the single files. Use with caution.
+def repartition_data() -> None:
+    """
+    Make sure you already have an up-to-date /upload/us/ folder with .parquet files
+    Delete all but the updates.json in the /data/us/ folder
+    Then run this function by using a python environment within your markstat folder:
+
+    ```python
+    from markstattools import us
+    us.repartition_data()
+    ```
+    """
+    tables = get_files_in_folder(upload_folder_path, 'parquet')
+    for table in tables:
+        table_name = os.path.basename(table).replace('.parquet', '')
+        (dd.read_parquet(table)
+         .repartition(partition_size="200MB")
+         .to_parquet(f'{data_path}/{table_name}',
+                     engine='pyarrow',
+                     compression='snappy',
+                     allow_truncated_timestamps=True,
+                     write_index=False))
 
 
 # -------------------------------------------------------------------------------------
