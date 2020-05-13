@@ -208,6 +208,19 @@ def update_file(file_path: str) -> None:
         .pipe(save, target_file_path))
 
 
+# This is an optional extra function to combine the parquet files into one file each.
+def make_each_table_as_single_file() -> None:
+    tables = get_subfolders(data_path)
+    for table in tables:
+        (dd.read_parquet(f'{data_path}/{table}')
+         .compute()
+         .to_parquet(f'{upload_folder_path}/{table}.parquet',
+                     engine='pyarrow',
+                     compression='snappy',
+                     allow_truncated_timestamps=True,
+                     index=False))
+
+
 # -------------------------------------------------------------------------------------
 # This function will automate everything.
 # -------------------------------------------------------------------------------------
@@ -220,10 +233,8 @@ def update_all() -> None:
     while update_folder:
         try:
             print(f"Merging in: {update_folder}")
-
             updates = [update_file(parquet_file) for parquet_file in get_files_in_folder(update_folder, 'parquet')]
             dask.compute(*updates)
-
             write_latest_folder_name(update_folder)
             gc.collect()
             update_folder = get_next_folder_name()
@@ -231,6 +242,9 @@ def update_all() -> None:
             print("failed")
             update_folder = None
             raise error
+    gc.collect()
+    print('Preparing upload files')
+    make_each_table_as_single_file()
     print("Done")
 
 
@@ -2409,6 +2423,13 @@ data_path = './data/us'
 if not os.path.exists(data_path):
     os.makedirs(data_path)
     codes.to_parquet(f'{data_path}/codes', engine='pyarrow', compression='snappy')
+
+
+# This is where the combined data will save.
+upload_folder_path = './upload/us'
+if not os.path.exists(upload_folder_path):
+    os.makedirs(upload_folder_path)
+
 
 # These are some basic information required to obtain the data from the USPTO website.
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'

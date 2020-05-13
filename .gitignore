@@ -1,6 +1,7 @@
 downloads/
 temp/
 data/
+upload/
 *.ipynb
 dist/
 build/
