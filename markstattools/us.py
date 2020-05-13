@@ -157,9 +157,10 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 
 def save(df: dd.DataFrame, path: str) -> None:
     df = df.map_partitions(clean)
-    if df.npartitions > 40:
-        df = df.repartition(npartitions=20)
-    df.to_parquet(path, engine='pyarrow', compression='snappy', write_index=False)
+    if df.npartitions > 120:
+        print("Repartitioning, this can take a while.")
+        df = df.repartition(npartitions=60)
+    df.to_parquet(path, engine='pyarrow', compression='snappy', allow_truncated_timestamps=True, write_index=False)
 
 
 def commit(temp_file_path: str, target_file_path: str) -> None:
