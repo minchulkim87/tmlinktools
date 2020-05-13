@@ -1,6 +1,6 @@
 # markstattools
 
-Developed for/by IP Australia for the MarkSTAT project - an international trade mark dataset.
+Developed for/by IP Australia for the MARKSTAT project - an international trade mark dataset.
 
 ## Background
 

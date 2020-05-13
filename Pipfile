@@ -12,6 +12,8 @@ pandas = "*"
 xmltodict = "*"
 pandas-read-xml = "*"
 dask = {extras = ["complete"],version = "*"}
+numpy = "*"
+toolz = "*"
 
 [requires]
 python_version = "3.7"

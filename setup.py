@@ -2,8 +2,8 @@ from pathlib import Path
 from setuptools import setup
 from setuptools import find_packages
 
-version = "0.1.2"
-description = "Python tools to help build the MarkSTAT - a global trade mark dataset."
+version = "0.1.3"
+description = "Python tools to help build the MARKSTAT - a global trade mark dataset."
 
 source_root = Path(".")
 
@@ -11,21 +11,6 @@ with (source_root / "README.md").open(encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="markstattools",
-    version=version,
-    description=description,
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    author="Min Chul Kim",
-    author_email="minchulkim87@gmail.com",
-    url="https://minchulkim87.github.io/markstattools",
-    packages=find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.6",
     install_requires=[
         "bokeh==2.0.2",
         "certifi==2020.4.5.1",
@@ -64,4 +49,19 @@ setup(
         "xmltodict==0.12.0",
         "zict==2.0.0",
     ],
+    name="markstattools",
+    version=version,
+    description=description,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    author="Min Chul Kim",
+    author_email="minchulkim87@gmail.com",
+    url="https://github.com/minchulkim87/markstattools",
+    packages=find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.6",
 )
