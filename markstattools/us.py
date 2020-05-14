@@ -161,8 +161,7 @@ def save(df: dd.DataFrame, path: str) -> None:
      .to_parquet(path,
                  engine='pyarrow',
                  compression='snappy',
-                 allow_truncated_timestamps=True,
-                 write_index=False))
+                 allow_truncated_timestamps=True))
 
 
 def commit(temp_file_path: str, target_file_path: str) -> None:
@@ -214,13 +213,17 @@ def update_file(file_path: str) -> None:
 def make_each_table_as_single_file() -> None:
     tables = get_subfolders(data_path)
     for table in tables:
-        (dd.read_parquet(f'{data_path}/{table}')
-         .compute()
-         .to_parquet(f'{upload_folder_path}/{table}.parquet',
-                     engine='pyarrow',
-                     compression='snappy',
-                     allow_truncated_timestamps=True,
-                     index=False))
+        print(table)
+        try:
+            (dd.read_parquet(f'{data_path}/{table}')
+            .compute()
+            .to_parquet(f'{upload_folder_path}/{table}.parquet',
+                        engine='pyarrow',
+                        compression='snappy',
+                        allow_truncated_timestamps=True,
+                        index=False))
+        except:
+            print('Failed.')
 
 
 # This is an optional function to repartition the parquet files using the single files. Use with caution.
@@ -238,13 +241,13 @@ def repartition_data() -> None:
     tables = get_files_in_folder(upload_folder_path, 'parquet')
     for table in tables:
         table_name = os.path.basename(table).replace('.parquet', '')
+        print(table_name)
         (dd.read_parquet(table)
-         .repartition(partition_size="200MB")
+         .repartition(partition_size="500MB")
          .to_parquet(f'{data_path}/{table_name}',
                      engine='pyarrow',
                      compression='snappy',
-                     allow_truncated_timestamps=True,
-                     write_index=False))
+                     allow_truncated_timestamps=True))
 
 
 # -------------------------------------------------------------------------------------
