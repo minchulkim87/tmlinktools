@@ -11,7 +11,7 @@ import pandas as pd
 import dask
 import dask.dataframe as dd
 import pandas_read_xml as pdx
-from pandas_read_xml import auto_separate_tables
+from pandas_read_xml import normalise, auto_separate_tables
 
 
 save_path = './downloads/ca'
@@ -20,6 +20,15 @@ temp_path = './temp/ca'
 data_path = './data/ca'
 upload_folder_path = './upload/ca'
 
+root_key_list = ['tmk:TrademarkApplication', 'tmk:TrademarkBag']
+common_keys = ['@com:operationCategory', 'com:ApplicationNumber|com:ST13ApplicationNumber']
+
+"""
+url = 'https://opic-cipo.ca/cipo/client_downloads/Trademarks_Weekly/WEEKLY_2019-06-25_00-13-46.zip'
+data = (pdx.read_xml(zip_file, root_key_list, transpose=True)
+        .pipe(normalise, 'com:ApplicationNumber')
+        .pipe(auto_separate_tables, common_keys))
+"""
 
 # -------------------------------------------------------------------------------------
 # These functions will help download all the files and save them locally.
