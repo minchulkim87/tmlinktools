@@ -36,8 +36,10 @@ A quick note on how the files will be managed:
 - You should use a single folder for all of the MARKSTAT data.
 - Three subfolders will be created and used within your designated MARKSTAT folder:
     - downloads: This folder will be used to store downloaded files before merging them in. You should not delete these even after combining.
+    - backup: This folder will be used to temporarily save current version files as a failsafe. This should automatically empty itself after each update.
     - temp: This folder will be used to temporarily save files as the datasets are being updated. This should automatically empty itself after each update.
     - data: This is where the final datasets will be stored.
+    - upload: This is where the final datasets will be stored - but each table will be combined to one parquet file each.
 - Subfolders will be created using the two-letter code representing the jurisdiction.
 - Within each jurisdiction folder, each "table" will correspond to one parquet folder (which will contain the partitioned parquet files).
 

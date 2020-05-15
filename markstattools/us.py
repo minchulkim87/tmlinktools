@@ -1,7 +1,6 @@
 import os
 import sys
 import shutil
-import gc
 import glob
 from typing import Callable, Iterator
 import json
@@ -92,7 +91,6 @@ def download_all() -> None:
                     save_path,
                     zip_name
                 )
-                gc.collect()
             except Exception as error:
                 print(f'Failed to download: {zip_name}')
                 raise error
@@ -148,11 +146,7 @@ def removed_keys_from_one_dataframe_in_another_dask(remove_from_df: dd.DataFrame
 
 def delete_then_append_dataframe(old_df: dd.DataFrame,
                                  new_df: dd.DataFrame) -> dd.DataFrame:
-    return dd.concat([removed_keys_from_one_dataframe_in_another_dask(old_df, new_df),
-                      new_df])
-
-
-# These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
+    return removed_keys_from_one_dataframe_in_another_dask(old_df, new_df).append(new_df)
 
 
 def save(df: dd.DataFrame, path: str) -> None:
@@ -164,10 +158,23 @@ def save(df: dd.DataFrame, path: str) -> None:
                  allow_truncated_timestamps=True))
 
 
-def commit(temp_file_path: str, target_file_path: str) -> None:
-    shutil.rmtree(target_file_path)
-    shutil.copytree(temp_file_path, target_file_path)
-    shutil.rmtree(temp_file_path)
+# These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
+
+def backup() -> None:
+    shutil.copytree(data_path, backup_path)
+
+
+def commit(update_version: str) -> None:
+    shutil.rmtree(data_path)
+    shutil.copytree(temp_path, data_path)
+    write_latest_folder_name(update_version)
+    shutil.rmtree(temp_path)
+
+
+def rollback() -> None:
+    shutil.rmtree(data_path)
+    shutil.copytree(backup_path, data_path)
+    shutil.rmtree(backup_path)
 
 
 def get_next_folder_name() -> str:
@@ -184,29 +191,26 @@ def get_next_folder_name() -> str:
         return f'{save_path}/apc18840407-20191231-01'
 
 
-def write_latest_folder_name(folder_name: str) -> None:
+def write_latest_folder_name(update_version: str) -> None:
     with open(f'{data_path}/updates.json', 'w') as jf:
-        json.dump({'latest': folder_name}, jf)
+        json.dump({'latest': update_version}, jf)
 
 
 # This function is the high-level wrap for the merging process.
 
 
-@dask.delayed
 def update_file(file_path: str) -> None:
     table_name = os.path.basename(file_path).replace('.parquet', '')
+    print(f'    {table_name}')
     temp_file_path = f'{temp_path}/{table_name}'
     target_file_path = f'{data_path}/{table_name}'
     if os.path.exists(target_file_path):
-        # first combine then save to temp folder
         (delete_then_append_dataframe(dd.read_parquet(target_file_path),
                                       dd.read_parquet(file_path).pipe(remove_unnecessary))
         .pipe(save, temp_file_path))
-        # then commit
-        commit(temp_file_path=temp_file_path, target_file_path=target_file_path)
     else:
         (dd.read_parquet(file_path).pipe(remove_unnecessary)
-        .pipe(save, target_file_path))
+        .pipe(save, temp_file_path))
 
 
 # This is an extra function to combine the parquet files into one file each.
@@ -216,14 +220,15 @@ def make_each_table_as_single_file() -> None:
         print(table)
         try:
             (dd.read_parquet(f'{data_path}/{table}')
-            .compute()
-            .to_parquet(f'{upload_folder_path}/{table}.parquet',
-                        engine='pyarrow',
-                        compression='snappy',
-                        allow_truncated_timestamps=True,
-                        index=False))
-        except:
-            print('Failed.')
+             .compute()
+             .to_parquet(f'{upload_folder_path}/{table}.parquet',
+                         engine='pyarrow',
+                         compression='snappy',
+                         allow_truncated_timestamps=True,
+                         index=False))
+        except Exception as error:
+            print('    Failed.')
+            raise error
 
 
 # This is an optional function to repartition the parquet files using the single files. Use with caution.
@@ -257,21 +262,21 @@ def repartition_data() -> None:
 
 def update_all() -> None:
     download_all()
-    gc.collect()
-    update_folder = get_next_folder_name()
-    while update_folder:
+    update_version = get_next_folder_name()
+    while update_version:
+        print("Backing up.")
+        backup()
         try:
-            print(f"Merging in: {update_folder}")
-            updates = [update_file(parquet_file) for parquet_file in get_files_in_folder(update_folder, 'parquet')]
-            dask.compute(*updates)
-            write_latest_folder_name(update_folder)
-            gc.collect()
-            update_folder = get_next_folder_name()
-        except Exception as error:
-            print("failed")
-            update_folder = None
-            raise error
-    gc.collect()
+            print(f"Merging in: {update_version}")
+            for parquet_file in get_files_in_folder(update_version, 'parquet'):
+                update_file(parquet_file)
+            print("Committing changes.")
+            commit(update_version)
+            update_version = get_next_folder_name()
+        except:
+            print("Failed. Rolling back.")
+            rollback()
+            update_version = None
     print('Preparing upload files')
     make_each_table_as_single_file()
     print("Done")
@@ -2442,10 +2447,18 @@ save_path = './downloads/us'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
+
+# This is where the backup files will save.
+backup_path = './backup/us'
+if not os.path.exists(backup_path):
+    os.makedirs(backup_path)
+
+
 # This is where the temporary files will save.
 temp_path = './temp/us'
 if not os.path.exists(temp_path):
     os.makedirs(temp_path)
+
 
 # This is where the combined data will save.
 data_path = './data/us'
