@@ -172,6 +172,8 @@ def save(df: dd.DataFrame, path: str) -> None:
 # These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
 
 def backup() -> None:
+    if os.path.exists(backup_path):
+        shutil.rmtree(backup_path)
     shutil.copytree(data_path, backup_path)
 
 
@@ -296,8 +298,6 @@ def update_all() -> None:
 def initialise():
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    if not os.path.exists(backup_path):
-        os.makedirs(backup_path)
     if not os.path.exists(temp_path):
         os.makedirs(temp_path)
     if not os.path.exists(upload_folder_path):
