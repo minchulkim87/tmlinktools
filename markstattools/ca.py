@@ -21,7 +21,7 @@ data_path = './data/ca'
 upload_folder_path = './upload/ca'
 
 root_key_list = ['tmk:TrademarkApplication', 'tmk:TrademarkBag']
-key_columns = ['operationCategory', 'ApplicationNumber|ST13ApplicationNumber']
+key_columns = ['operationCategory', 'ApplicationNumber']
 
 historical_zip_url_base = 'https://opic-cipo.ca/cipo/client_downloads/Trademarks_Historical_2019_10/'
 weekly_zip_url_base = 'https://opic-cipo.ca/cipo/client_downloads/Trademarks_Weekly/'
@@ -150,7 +150,7 @@ def extract_sub_tree(df: pd.DataFrame, extract_column: str, key_columns: list=ke
 
 
 def finish_partial_tree(df: pd.DataFrame, clean_column_names_with_name: str) -> pd.DataFrame:
-    return (df
+    return (df.copy()
             .pipe(fully_flatten)
             .pipe(clean_column_names, clean_column_names_with_name)
             .pipe(remove_bad_columns)
@@ -162,9 +162,6 @@ def finish_partial_tree(df: pd.DataFrame, clean_column_names_with_name: str) -> 
 
 def separate_tables(df: pd.DataFrame) -> dict:
     data = {}
-    data['delete'] = df.loc[df['operationCategory']=='delete', key_columns].copy()
-    df = df.query('operationCategory!="delete"')
-
     tables = [
         'GoodsServicesBag',
         'LegalProceedingsBag',
@@ -181,10 +178,10 @@ def separate_tables(df: pd.DataFrame) -> dict:
         'UseLimitationText',
         'NationalTrademarkInformation'
     ]
-
+    data['delete'] = df.loc[df['operationCategory']=='delete', key_columns].copy()
+    df = df.query('operationCategory!="delete"')
     for table in tables:
         if table in df.columns:
-            print(f'    Extracting {table}')
             if table == 'GoodsServicesBag':
                 goods_services = extract_sub_tree_partial(df, extract_column='GoodsServicesBag', key_columns=key_columns, n_flattens=2)
                 for sub_tree in ['ClassDescriptionBag', 'GoodsServicesClassificationBag']:
@@ -251,6 +248,7 @@ def download_all() -> None:
                     (pdx.read_xml(url, root_key_list, transpose=True)
                         .pipe(normalise, 'com:ApplicationNumber')
                         .pipe(clean_column_names)
+                        .rename(columns={'ApplicationNumber|ST13ApplicationNumber': 'ApplicationNumber'})
                         .pipe(separate_tables)),
                     save_path,
                     zip_name
