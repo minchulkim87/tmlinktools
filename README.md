@@ -52,3 +52,11 @@ To build/update US data, navigate to your MARKSTAT folder within terminal and us
 ```bash
 python -m markstattools.us
 ```
+
+#### CA dataset
+
+To build/update CA data, navigate to your MARKSTAT folder within terminal and use the following command:
+
+```bash
+python -m markstattools.ca
+```

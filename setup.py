@@ -2,7 +2,7 @@ from pathlib import Path
 from setuptools import setup
 from setuptools import find_packages
 
-version = "0.1.9"
+version = "0.2.0"
 description = "Python tools to help build the MARKSTAT - a global trade mark dataset."
 
 source_root = Path(".")
