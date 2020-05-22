@@ -14,6 +14,7 @@ pandas-read-xml = "*"
 dask = {extras = ["complete"],version = "*"}
 numpy = "*"
 toolz = "*"
+lxml = "*"
 
 [requires]
 python_version = "3.7"

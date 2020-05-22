@@ -230,7 +230,7 @@ def update_file(file_path: str) -> None:
 def make_each_table_as_single_file() -> None:
     tables = get_subfolders(data_path)
     for table in tables:
-        print(table)
+        print(f'    {table}')
         try:
             (dd.read_parquet(f'{data_path}/{table}')
              .compute()
