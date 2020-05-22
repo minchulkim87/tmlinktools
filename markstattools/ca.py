@@ -188,8 +188,9 @@ def separate_tables(df: pd.DataFrame) -> dict:
             if table == 'GoodsServicesBag':
                 goods_services = extract_sub_tree_partial(df, extract_column='GoodsServicesBag', key_columns=key_columns, n_flattens=2)
                 for sub_tree in ['ClassDescriptionBag', 'GoodsServicesClassificationBag']:
-                    data[f'GoodsServices.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(goods_services, sub_tree)
-                    goods_services = goods_services.drop(columns=sub_tree)
+                    if sub_tree in goods_services.columns:
+                        data[f'GoodsServices.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(goods_services, sub_tree)
+                        goods_services = goods_services.drop(columns=sub_tree)
                 data['GoodsServices'] = finish_partial_tree(goods_services, 'GoodsServicesBag')
 
             elif table == 'LegalProceedingsBag':
@@ -198,23 +199,27 @@ def separate_tables(df: pd.DataFrame) -> dict:
                 CancellationProceedingsBag = extract_sub_tree_partial(LegalProceedingsBag, extract_column='CancellationProceedings', key_columns=key_columns, n_flattens=1)
                 del LegalProceedingsBag
                 for sub_tree in ['ProceedingStageBag', 'DefendantBag', 'PlaintiffBag']:
-                    data[f'OppositionProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(OppositionProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['OppositionIdentifier'])
-                    data[f'CancellationProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(CancellationProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['LegalProceedingIdentifier'])
-                    OppositionProceedingsBag = OppositionProceedingsBag.drop(columns=sub_tree)
-                    CancellationProceedingsBag = CancellationProceedingsBag.drop(columns=sub_tree)
+                    if sub_tree in OppositionProceedingsBag.columns:
+                        data[f'OppositionProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(OppositionProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['OppositionIdentifier'])
+                        OppositionProceedingsBag = OppositionProceedingsBag.drop(columns=sub_tree)
+                    if sub_tree in CancellationProceedingsBag.columns:
+                        data[f'CancellationProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(CancellationProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['LegalProceedingIdentifier'])
+                        CancellationProceedingsBag = CancellationProceedingsBag.drop(columns=sub_tree)
                 data['OppositionProceedings'] = finish_partial_tree(OppositionProceedingsBag, 'OppositionProceedingsBag')
                 data['CancellationProceedings'] = finish_partial_tree(OppositionProceedingsBag, 'CancellationProceedings')
 
             elif table == 'MarkEventBag':
                 MarkEventBag = extract_sub_tree_partial(df, extract_column='MarkEventBag', key_columns=key_columns, n_flattens=4)
-                MarkEventBag = MarkEventBag.drop(columns='NationalMarkEvent|MarkEventOtherLanguageDescriptionTextBag')
+                if 'NationalMarkEvent|MarkEventOtherLanguageDescriptionTextBag' in MarkEventBag.columns:
+                    MarkEventBag = MarkEventBag.drop(columns='NationalMarkEvent|MarkEventOtherLanguageDescriptionTextBag')
                 data['MarkEvent'] = finish_partial_tree(MarkEventBag, 'MarkEventBag')
 
             elif table == 'NationalTrademarkInformation':
                 NationalTrademarkInformation = extract_sub_tree_partial(df, 'NationalTrademarkInformation', key_columns=key_columns, n_flattens=1)
                 for sub_tree in ['CategorizedTextBag', 'ClaimBag', 'DoubtfulCaseBag', 'FootnoteBag', 'IndexHeadingBag', 'InterestedPartyBag', 'TrademarkClass', 'Legislation', 'Section9']:
-                    data[f'NationalTrademark.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(NationalTrademarkInformation, sub_tree)
-                    NationalTrademarkInformation = NationalTrademarkInformation.drop(columns=sub_tree)
+                    if sub_tree in NationalTrademarkInformation.columns:
+                        data[f'NationalTrademark.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(NationalTrademarkInformation, sub_tree)
+                        NationalTrademarkInformation = NationalTrademarkInformation.drop(columns=sub_tree)
                 data['NationalTrademark'] = finish_partial_tree(NationalTrademarkInformation, clean_column_names_with_name='NationalTrademarkInformation')
             else:
                 data[table.replace('Bag', '')] = extract_sub_tree(df, table)
