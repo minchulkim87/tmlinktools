@@ -192,18 +192,21 @@ def separate_tables(df: pd.DataFrame) -> dict:
 
             elif table == 'LegalProceedingsBag':
                 LegalProceedingsBag = extract_sub_tree_partial(df, extract_column='LegalProceedingsBag', key_columns=key_columns, n_flattens=3)
-                OppositionProceedingsBag = extract_sub_tree_partial(LegalProceedingsBag, extract_column='OppositionProceedingBag', key_columns=key_columns, n_flattens=1)
-                CancellationProceedingsBag = extract_sub_tree_partial(LegalProceedingsBag, extract_column='CancellationProceedings', key_columns=key_columns, n_flattens=1)
+                if 'OppositionProceedingBag' in LegalProceedingsBag.columns:
+                    OppositionProceedingsBag = extract_sub_tree_partial(LegalProceedingsBag, extract_column='OppositionProceedingBag', key_columns=key_columns, n_flattens=1)
+                    for sub_tree in ['ProceedingStageBag', 'DefendantBag', 'PlaintiffBag']:
+                        if sub_tree in OppositionProceedingsBag.columns:
+                            data[f'OppositionProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(OppositionProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['OppositionIdentifier'])
+                            OppositionProceedingsBag = OppositionProceedingsBag.drop(columns=sub_tree)
+                    data['OppositionProceedings'] = finish_partial_tree(OppositionProceedingsBag, 'OppositionProceedingsBag')
+                if 'CancellationProceedings' in LegalProceedingsBag.columns:
+                    CancellationProceedingsBag = extract_sub_tree_partial(LegalProceedingsBag, extract_column='CancellationProceedings', key_columns=key_columns, n_flattens=1)
+                    for sub_tree in ['ProceedingStageBag', 'DefendantBag', 'PlaintiffBag']:
+                        if sub_tree in CancellationProceedingsBag.columns:
+                            data[f'CancellationProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(CancellationProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['LegalProceedingIdentifier'])
+                            CancellationProceedingsBag = CancellationProceedingsBag.drop(columns=sub_tree)
+                    data['CancellationProceedings'] = finish_partial_tree(OppositionProceedingsBag, 'CancellationProceedings')
                 del LegalProceedingsBag
-                for sub_tree in ['ProceedingStageBag', 'DefendantBag', 'PlaintiffBag']:
-                    if sub_tree in OppositionProceedingsBag.columns:
-                        data[f'OppositionProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(OppositionProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['OppositionIdentifier'])
-                        OppositionProceedingsBag = OppositionProceedingsBag.drop(columns=sub_tree)
-                    if sub_tree in CancellationProceedingsBag.columns:
-                        data[f'CancellationProceedings.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(CancellationProceedingsBag, extract_column=sub_tree, key_columns=key_columns+['LegalProceedingIdentifier'])
-                        CancellationProceedingsBag = CancellationProceedingsBag.drop(columns=sub_tree)
-                data['OppositionProceedings'] = finish_partial_tree(OppositionProceedingsBag, 'OppositionProceedingsBag')
-                data['CancellationProceedings'] = finish_partial_tree(OppositionProceedingsBag, 'CancellationProceedings')
 
             elif table == 'MarkEventBag':
                 MarkEventBag = extract_sub_tree_partial(df, extract_column='MarkEventBag', key_columns=key_columns, n_flattens=4)
