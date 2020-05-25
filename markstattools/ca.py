@@ -402,7 +402,7 @@ def update_all() -> None:
         backup()
         try:
             print(f"Merging in: {update_version}")
-            deletes = pd.read_parquet(f'{save_path}/{update_version}/delete.parquet')
+            deletes = pd.read_parquet(f'{update_version}/delete.parquet')
             for parquet_file in get_files_in_folder(update_version, 'parquet'):
                 if 'delete' not in parquet_file:
                     update_file(parquet_file, deletes)
@@ -410,10 +410,11 @@ def update_all() -> None:
             commit(update_version)
             update_version = get_next_folder_name()
             updated = True
-        except:
+        except Exception as error:
             print("Failed. Rolling back.")
             rollback()
             update_version = None
+            raise error
         print('Preparing upload files')
     if updated:
         make_each_table_as_single_file()
