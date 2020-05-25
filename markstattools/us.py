@@ -211,7 +211,6 @@ def write_latest_folder_name(update_version: str) -> None:
 
 # This function is the high-level wrap for the merging process.
 
-
 def update_file(file_path: str) -> None:
     table_name = os.path.basename(file_path).replace('.parquet', '')
     print(f'    {table_name}')
@@ -227,6 +226,7 @@ def update_file(file_path: str) -> None:
 
 
 # This is an extra function to combine the parquet files into one file each.
+
 def make_each_table_as_single_file() -> None:
     tables = get_subfolders(data_path)
     for table in tables:
