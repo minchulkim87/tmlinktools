@@ -276,6 +276,7 @@ def repartition_data() -> None:
 def update_all() -> None:
     download_all()
     update_version = get_next_folder_name()
+    updated = False
     while update_version:
         print("Backing up.")
         backup()
@@ -286,11 +287,13 @@ def update_all() -> None:
             print("Committing changes.")
             commit(update_version)
             update_version = get_next_folder_name()
+            updated = True
         except:
             print("Failed. Rolling back.")
             rollback()
             update_version = None
         print('Preparing upload files')
+    if updated:
         make_each_table_as_single_file()
     print("Done")
 
