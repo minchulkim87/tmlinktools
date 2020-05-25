@@ -414,7 +414,6 @@ def update_all() -> None:
             print("Failed. Rolling back.")
             rollback()
             update_version = None
-            raise error
         print('Preparing upload files')
     if updated:
         make_each_table_as_single_file()
