@@ -413,6 +413,7 @@ def update_all() -> None:
         except:
             print("Failed. Rolling back.")
             rollback()
+            updated = False
             update_version = None
         print('Preparing upload files')
     if updated:
