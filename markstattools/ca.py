@@ -413,8 +413,8 @@ def update_all() -> None:
             rollback()
             updated = False
             update_version = None
-        print('Preparing upload files')
     if updated:
+        print('Preparing upload files')
         make_each_table_as_single_file()
     print("Done")
 
