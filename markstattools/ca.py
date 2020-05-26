@@ -338,7 +338,7 @@ def get_next_folder_name() -> str:
         with open(f'{data_path}/updates.json', 'r') as jf:
             latest = json.loads(jf.read())['latest']
         download_folder_list = [os.path.basename(download).replace('.zip', '') for download in get_file_list_as_table()['file_name']]
-        index = download_folder_list.index(latest)
+        index = download_folder_list.index(os.path.basename(latest))
         if index < len(download_folder_list) - 1:
             return download_folder_list[index+1]
         else:
@@ -395,22 +395,22 @@ def make_each_table_as_single_file() -> None:
 
 def update_all() -> None:
     download_all()
-    update_version = get_next_folder_name()
+    update_version = os.path.basename(get_next_folder_name()).replace('.zip', '')
     updated = False
     while update_version:
         print("Backing up.")
         backup()
         try:
             print(f"Merging in: {update_version}")
-            deletes = pd.read_parquet(f'{update_version}/delete.parquet')
-            for parquet_file in get_files_in_folder(update_version, 'parquet'):
+            deletes = pd.read_parquet(f'{save_path}/{update_version}/delete.parquet')
+            for parquet_file in get_files_in_folder(f'{save_path}/{update_version}', 'parquet'):
                 if 'delete' not in parquet_file:
                     update_file(parquet_file, deletes)
             print("Committing changes.")
             commit(update_version)
             update_version = get_next_folder_name()
             updated = True
-        except Exception as error:
+        except:
             print("Failed. Rolling back.")
             rollback()
             update_version = None
