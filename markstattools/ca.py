@@ -74,12 +74,10 @@ def clean_column_names(df: pd.DataFrame, table_name: str=None) -> pd.DataFrame:
 
 
 def clean_data_types(df: pd.DataFrame) -> pd.DataFrame:
-    for column in df.columns:
-        if column.endswith('Date'):
-            df[column] = pd.to_datetime(df[column], errors='coerce')
-        if column.endswith('Indicator'):
-            df[column] = df[column].fillna(False).replace('false', False).replace('true', True)
-    return df
+    temp = df.copy()
+    temp.loc[:, temp.columns.str.endswith('Date')] = temp.loc[:, temp.columns.str.endswith('Date')].apply(pd.to_datetime, errors='coerce')
+    temp.loc[:, temp.columns.str.endswith('Indicator')] = temp.loc[:, temp.columns.str.endswith('Indicator')].fillna(False).replace('false', False).replace('true', True)
+    return temp
 
 
 def remove_bad_columns(df: pd.DataFrame) -> pd.DataFrame:
