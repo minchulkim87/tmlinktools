@@ -5,7 +5,6 @@ import glob
 from typing import Callable, Iterator, Union
 import json
 import pyarrow
-from datetime import timedelta, date
 import numpy as np
 import pandas as pd
 import dask
@@ -126,7 +125,7 @@ def remove_entirely_null_rows(df: pd.DataFrame, except_columns: list=key_columns
 
 def extract_sub_tree_partial(df: pd.DataFrame, extract_column: str, key_columns: list=key_columns, n_flattens: int=1) -> pd.DataFrame:
     df = df[key_columns+[extract_column]].copy()
-    for i in range(n_flattens):
+    for _ in range(n_flattens):
         df = df.pipe(flatten)
     df = (df
           .pipe(clean_column_names, extract_column)
