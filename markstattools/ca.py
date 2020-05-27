@@ -167,8 +167,12 @@ def separate_tables(df: pd.DataFrame) -> dict:
         'ApplicantBag',
         'PriorityBag',
         'PublicationBag',
+        'AssociatedMarkBag', #
+        'DivisionalApplicationBag', #
         'MarkDisclaimerBag',
+        'InternationalMarkIdentifierBag', #
         'MarkRepresentation',
+        'CorrespondenceAddress', #
         'NationalRepresentative',
         'NationalCorrespondent',
         'Authorization',
@@ -214,7 +218,7 @@ def separate_tables(df: pd.DataFrame) -> dict:
 
             elif table == 'NationalTrademarkInformation':
                 NationalTrademarkInformation = extract_sub_tree_partial(df, 'NationalTrademarkInformation', key_columns=key_columns, n_flattens=1)
-                for sub_tree in ['CategorizedTextBag', 'ClaimBag', 'DoubtfulCaseBag', 'FootnoteBag', 'IndexHeadingBag', 'InterestedPartyBag', 'TrademarkClass', 'Legislation', 'Section9']:
+                for sub_tree in ['CategorizedTextBag', 'ClaimBag', 'DoubtfulCaseBag', 'FootnoteBag', 'IndexHeadingBag', 'InterestedPartyBag', 'TrademarkClass', 'Legislation', 'Section9', 'GeographicalIndication']:
                     if sub_tree in NationalTrademarkInformation.columns:
                         data[f'NationalTrademark.{sub_tree.replace("Bag", "")}'] = extract_sub_tree(NationalTrademarkInformation, sub_tree)
                         NationalTrademarkInformation = NationalTrademarkInformation.drop(columns=sub_tree)
