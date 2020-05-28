@@ -74,8 +74,11 @@ def clean_column_names(df: pd.DataFrame, table_name: str=None) -> pd.DataFrame:
 
 def clean_data_types(df: pd.DataFrame) -> pd.DataFrame:
     temp = df.copy()
-    temp.loc[:, temp.columns.str.endswith('Date')] = temp.loc[:, temp.columns.str.endswith('Date')].apply(pd.to_datetime, errors='coerce')
-    temp.loc[:, temp.columns.str.endswith('Indicator')] = temp.loc[:, temp.columns.str.endswith('Indicator')].fillna(False).replace('false', False).replace('true', True)
+    for column in temp.columns:
+        if column.endswith('Date'):
+            temp[column] = pd.to_datetime(temp[column], errors='coerce')
+        elif column.endswith('Indicator'):
+            temp[column].fillna(False).replace('false', False).replace('true', True)
     return temp
 
 

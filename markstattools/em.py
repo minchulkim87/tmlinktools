@@ -29,18 +29,32 @@ root_key_list = ['Transaction', 'TradeMarkTransactionBody', 'TransactionContentD
 # -------------------------------------------------------------------------------------
 
 
-def clean_column_names(df: pd.DataFrame, table_name: str=None):
-    if table_name:
-        for column in df.columns:
-            df = df.rename(columns={column: column.replace(table_name+'|', '')})
-    df.columns = df.columns.str.replace('@', '').str.replace('#', '')
+def clean_column_names(df: pd.DataFrame, table_name: str=None) -> pd.DataFrame:
+    new_columns = []
+    for column in df.columns:
+        new = column
+        new = new.replace('@', '')
+        new = new.replace('#', '')
+        new = new.replace('ClassDescriptionDetails|ClassDescription|', '')
+        new = new.replace('BasicRecord|', '')
+        if table_name:
+            new = new.replace(table_name+'|', '', 1)
+            if table_name.endswith('Details'):
+                new = new.replace(table_name.replace('Details', '|'), '', 1)
+        if new.endswith('|'):
+            new = new[::-1].replace('|', '', 1)[::-1]
+        new_columns.append(new)
+    df.columns = new_columns
     return df
 
 
 def clean_data_types(df: pd.DataFrame) -> pd.DataFrame:
     temp = df.copy()
-    temp.loc[:, df.columns.str.endswith('Date')] = temp.loc[:, df.columns.str.endswith('Date')].apply(pd.to_datetime, errors='coerce')
-    temp.loc[:, temp.columns.str.endswith('Indicator')] = temp.loc[:, temp.columns.str.endswith('Indicator')].fillna(False).replace('false', False).replace('true', True)
+    for column in temp.columns:
+        if column.endswith('Date'):
+            temp[column] = pd.to_datetime(temp[column], errors='coerce')
+        elif column.endswith('Indicator'):
+            temp[column].fillna(False).replace('false', False).replace('true', True)
     return temp
 
 
@@ -96,6 +110,7 @@ def download_from_ftp(from_folder: str, zip_starts_with: str, root_key_list: lis
                 for zip_file in zip_file_list:
                     zip_name = os.path.basename(zip_file).replace('.zip', '')
                     if not os.path.exists(f'{save_path}/{zip_name}'):
+                        print(f'Downloading: {zip_name}')
                         with open(f'{save_path}/temp.zip', 'wb') as temp:
                             ftp.retrbinary(f'RETR {zip_file}', temp.write)
                         save_all_tables(
