@@ -343,7 +343,7 @@ def get_next_folder_name() -> str:
             latest = json.loads(jf.read())['latest']
         download_folder_list = [os.path.basename(download).replace('.zip', '') for download in get_file_list_as_table()['file_name']]
         index = download_folder_list.index(os.path.basename(latest))
-        if index < len(download_folder_list) - 1:
+        if 0 <= index < len(download_folder_list) - 1:
             return download_folder_list[index+1]
         else:
             return None

@@ -82,10 +82,16 @@ def separate_tables(df: pd.DataFrame, main_table_name: str, key_columns: list) -
                 GoodsServicesDetails = (df.loc[:, key_columns+[table]].copy()
                                         .pipe(fully_flatten)
                                         .pipe(clean_column_names, table))
-                data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
-                                                            .loc[:, key_columns + ['ClassNumber', 'ClassificationVersion']]
-                                                            .copy()
-                                                            .drop_duplicates())
+                if 'ClassificationVersion' in GoodsServicesDetails.columns:
+                    data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
+                                                                .loc[:, key_columns + ['ClassNumber', 'ClassificationVersion']]
+                                                                .copy()
+                                                                .drop_duplicates())
+                else:
+                    data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
+                                                                .loc[:, key_columns + ['ClassNumber']]
+                                                                .copy()
+                                                                .drop_duplicates())
                 # The EUIPO captures the description in multiple languages for most applications.
                 # Unfortunately, this makes the file sizes too large.
                 # The descriptions will be filtered for English ones only.
@@ -153,19 +159,19 @@ def download_all() -> None:
         key_columns=['operationCode', 'ApplicationNumber']
     )
     download_from_ftp(
-        from_folder='Trademark/Differential',
-        zip_starts_with='DIFF_EUTMS',
-        root_key_list=root_key_list,
-        main_key='TradeMarkDetails',
-        main_table_name='TradeMark',
-        key_columns=['operationCode', 'ApplicationNumber']
-    )
-    download_from_ftp(
         from_folder='InternationalRegistration/Full',
         zip_starts_with='IRS',
         root_key_list=root_key_list,
         main_key='TradeMarkDetails',
         main_table_name='InternationalRegistration',
+        key_columns=['operationCode', 'ApplicationNumber']
+    )
+    download_from_ftp(
+        from_folder='Trademark/Differential',
+        zip_starts_with='DIFF_EUTMS',
+        root_key_list=root_key_list,
+        main_key='TradeMarkDetails',
+        main_table_name='TradeMark',
         key_columns=['operationCode', 'ApplicationNumber']
     )
     download_from_ftp(

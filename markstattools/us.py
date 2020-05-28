@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import glob
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Union
 import json
 import pyarrow
 from datetime import timedelta, date
@@ -196,7 +196,7 @@ def get_next_folder_name() -> str:
             latest = json.loads(jf.read())['latest']
         download_folder_list = get_historical_download_folder_list() + get_daily_download_folder_list()
         index = download_folder_list.index(latest)
-        if index < len(download_folder_list) - 1:
+        if 0 <= index < len(download_folder_list) - 1:
             return download_folder_list[index+1]
         else:
             return None
