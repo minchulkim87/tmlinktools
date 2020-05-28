@@ -78,7 +78,7 @@ def clean_data_types(df: pd.DataFrame) -> pd.DataFrame:
         if column.endswith('Date'):
             temp[column] = pd.to_datetime(temp[column], errors='coerce')
         elif column.endswith('Indicator'):
-            temp[column].fillna(False).replace('false', False).replace('true', True)
+            temp[column] = temp[column].fillna(False).replace('false', False).replace('true', True)
     return temp
 
 
@@ -382,6 +382,7 @@ def make_each_table_as_single_file() -> None:
         try:
             (dd.read_parquet(f'{data_path}/{table}')
              .compute()
+             .pipe(clean_data_types)
              .to_parquet(f'{upload_folder_path}/{table}.parquet',
                          engine='pyarrow',
                          compression='snappy',
@@ -399,7 +400,10 @@ def make_each_table_as_single_file() -> None:
 
 def update_all() -> None:
     download_all()
-    update_version = os.path.basename(get_next_folder_name()).replace('.zip', '')
+    if get_next_folder_name():
+        update_version = os.path.basename(get_next_folder_name()).replace('.zip', '')
+    else:
+        update_version = None
     updated = False
     while update_version:
         print("Backing up.")

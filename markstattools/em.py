@@ -78,7 +78,25 @@ def separate_tables(df: pd.DataFrame, main_table_name: str, key_columns: list) -
     df = df.query('operationCode!="Delete"')
     for table in df.columns:
         if table.endswith('Details'):
-            data[main_table_name + '.' + table.replace('Details', '')] = extract_sub_tree(df, extract_column=table, key_columns=key_columns)
+            if table.endswith('GoodsServicesDetails'):
+                GoodsServicesDetails = (df.loc[:, key_columns+[table]].copy()
+                                        .pipe(fully_flatten)
+                                        .pipe(clean_column_names, table))
+                data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
+                                                            .loc[:, key_columns + ['ClassNumber', 'ClassificationVersion']]
+                                                            .copy()
+                                                            .drop_duplicates())
+                # The EUIPO captures the description in multiple languages for most applications.
+                # Unfortunately, this makes the file sizes too large.
+                # The descriptions will be filtered for English ones only.
+                data[f"{main_table_name}.GoodsServices.Description"] = (GoodsServicesDetails
+                                                                        .loc[GoodsServicesDetails['GoodsServicesDescription|languageCode']=='en',
+                                                                             key_columns + ['GoodsServicesDescription|text', 'GoodsServicesDescription|languageCode']]
+                                                                        .copy()
+                                                                        .drop_duplicates())
+                del GoodsServicesDetails
+            else:
+                data[main_table_name + '.' + table.replace('Details', '')] = extract_sub_tree(df, extract_column=table, key_columns=key_columns)
             df = df.drop(columns=table)
     data[main_table_name.replace('Details', '')] = (df
                                                     .pipe(fully_flatten)
@@ -109,8 +127,8 @@ def download_from_ftp(from_folder: str, zip_starts_with: str, root_key_list: lis
                 zip_file_list.sort()
                 for zip_file in zip_file_list:
                     zip_name = os.path.basename(zip_file).replace('.zip', '')
-                    if not os.path.exists(f'{save_path}/{zip_name}'):
-                        print(f'Downloading: {zip_name}')
+                    if not os.path.exists(f'{save_path}/{from_folder}/{folder}/{zip_name}'):
+                        print(f'Downloading: {from_folder}/{folder}/{zip_name}')
                         with open(f'{save_path}/temp.zip', 'wb') as temp:
                             ftp.retrbinary(f'RETR {zip_file}', temp.write)
                         save_all_tables(
@@ -119,7 +137,7 @@ def download_from_ftp(from_folder: str, zip_starts_with: str, root_key_list: lis
                                 .pipe(flatten)
                                 .pipe(clean_column_names, main_key)
                                 .pipe(separate_tables, main_table_name=main_table_name, key_columns=key_columns)),
-                            path=save_path,
+                            path=f'{save_path}/{from_folder}/{folder}',
                             folder_name=zip_name
                         )
             ftp.cwd('..')
