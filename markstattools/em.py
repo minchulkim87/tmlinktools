@@ -54,7 +54,7 @@ def clean_data_types(df: pd.DataFrame) -> pd.DataFrame:
         if column.endswith('Date'):
             temp[column] = pd.to_datetime(temp[column], errors='coerce')
         elif column.endswith('Indicator'):
-            temp[column].fillna(False).replace('false', False).replace('true', True)
+            temp[column] = temp[column].fillna(False).replace('false', False).replace('true', True)
     return temp
 
 
