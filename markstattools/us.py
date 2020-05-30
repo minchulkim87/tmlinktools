@@ -135,9 +135,7 @@ def get_subfolders(folder: str) -> list:
 
 
 def remove_unnecessary(df: dd.DataFrame) -> dd.DataFrame:
-    return (df
-            .loc[:, df.columns != 'action-key']
-            .drop_duplicates())
+    return df.drop(columns=['action-key'])
 
 
 def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
