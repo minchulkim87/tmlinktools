@@ -155,6 +155,7 @@ def download_from_ftp(from_folder: str,
                                     path=f'{save_path}/{from_folder}/{folder}',
                                     folder_name=zip_name
                                 )
+                                print('    Downloaded.')
                             if (folder_list[-1] == folder) and (zip_file_list[-1] == zip_file):
                                 more_to_go = False
                     ftp.cwd('..')
