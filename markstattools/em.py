@@ -120,33 +120,46 @@ def save_all_tables(data: dict, path: str, folder_name: str) -> None:
         data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet', index=False)
 
 
-def download_from_ftp(from_folder: str, zip_starts_with: str, root_key_list: list, main_key: str, main_table_name: str, key_columns: list) -> None:
-    with FTP(ftp_link) as ftp:
-        ftp.login(user='opendata', passwd='kagar1n')
-        ftp.cwd(from_folder)
-        folder_list = ftp.nlst()
-        folder_list.sort()
-        for folder in folder_list:
-            ftp.cwd(folder)
-            zip_file_list = [zip_file for zip_file in ftp.nlst() if zip_file.startswith(zip_starts_with)]
-            if len(zip_file_list) > 0:
-                zip_file_list.sort()
-                for zip_file in zip_file_list:
-                    zip_name = os.path.basename(zip_file).replace('.zip', '')
-                    if not os.path.exists(f'{save_path}/{from_folder}/{folder}/{zip_name}'):
-                        print(f'Downloading: {from_folder}/{folder}/{zip_name}')
-                        with open(f'{save_path}/temp.zip', 'wb') as temp:
-                            ftp.retrbinary(f'RETR {zip_file}', temp.write)
-                        save_all_tables(
-                            (pdx.read_xml(f'{save_path}/temp.zip', root_key_list)
-                                .loc[:, [main_key]]
-                                .pipe(flatten)
-                                .pipe(clean_column_names, main_key)
-                                .pipe(separate_tables, main_table_name=main_table_name, key_columns=key_columns)),
-                            path=f'{save_path}/{from_folder}/{folder}',
-                            folder_name=zip_name
-                        )
-            ftp.cwd('..')
+def download_from_ftp(from_folder: str,
+                      zip_starts_with: str,
+                      root_key_list: list,
+                      main_key: str,
+                      main_table_name: str,
+                      key_columns: list) -> None:
+    more_to_go = True
+    while more_to_go:
+        try:
+            print('Trying to download from FTP')
+            with FTP(ftp_link) as ftp:
+                ftp.login(user='opendata', passwd='kagar1n')
+                ftp.cwd(from_folder)
+                folder_list = ftp.nlst()
+                folder_list.sort()
+                for folder in folder_list:
+                    ftp.cwd(folder)
+                    zip_file_list = [zip_file for zip_file in ftp.nlst() if zip_file.startswith(zip_starts_with)]
+                    if len(zip_file_list) > 0:
+                        zip_file_list.sort()
+                        for zip_file in zip_file_list:
+                            zip_name = os.path.basename(zip_file).replace('.zip', '')
+                            if not os.path.exists(f'{save_path}/{from_folder}/{folder}/{zip_name}'):
+                                print(f'Downloading: {from_folder}/{folder}/{zip_name}')
+                                with open(f'{save_path}/temp.zip', 'wb') as temp:
+                                    ftp.retrbinary(f'RETR {zip_file}', temp.write)
+                                save_all_tables(
+                                    (pdx.read_xml(f'{save_path}/temp.zip', root_key_list)
+                                        .loc[:, [main_key]]
+                                        .pipe(flatten)
+                                        .pipe(clean_column_names, main_key)
+                                        .pipe(separate_tables, main_table_name=main_table_name, key_columns=key_columns)),
+                                    path=f'{save_path}/{from_folder}/{folder}',
+                                    folder_name=zip_name
+                                )
+                            if (folder_list[-1] == folder) and (zip_file_list[-1] == zip_file):
+                                more_to_go = False
+                    ftp.cwd('..')
+        except:
+            print('Connection dropped.')
 
 
 def download_all() -> None:
