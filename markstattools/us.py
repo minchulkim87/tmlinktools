@@ -244,30 +244,6 @@ def make_each_table_as_single_file() -> None:
             raise error
 
 
-# This is an optional function to repartition the parquet files using the single files. Use with caution.
-def repartition_data() -> None:
-    """
-    Make sure you already have an up-to-date /upload/us/ folder with .parquet files
-    Delete all but the updates.json in the /data/us/ folder
-    Then run this function by using a python environment within your markstat folder:
-
-    ```python
-    from markstattools import us
-    us.repartition_data()
-    ```
-    """
-    tables = get_files_in_folder(upload_folder_path, 'parquet')
-    for table in tables:
-        table_name = os.path.basename(table).replace('.parquet', '')
-        print(table_name)
-        (dd.read_parquet(table)
-         .repartition(partition_size="500MB")
-         .to_parquet(f'{data_path}/{table_name}',
-                     engine='pyarrow',
-                     compression='snappy',
-                     allow_truncated_timestamps=True))
-
-
 # -------------------------------------------------------------------------------------
 # This function will automate everything.
 # -------------------------------------------------------------------------------------
