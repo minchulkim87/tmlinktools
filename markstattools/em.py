@@ -131,7 +131,7 @@ def download_from_ftp(from_folder: str,
     tries = 1
     while more_to_go and tries <= max_tries:
         try:
-            print('Trying to download from FTP')
+            print(f'Trying to download from {from_folder}')
             with FTP(ftp_link) as ftp:
                 ftp.login(user='opendata', passwd='kagar1n')
                 ftp.cwd(from_folder)
@@ -164,6 +164,10 @@ def download_from_ftp(from_folder: str,
         except:
             tries = tries + 1
             print('Connection dropped.')
+    if more_to_go:
+        print('Max tries exceeded. Closed.')
+    else:
+        print('No more files to download.')
 
 
 def download_all() -> None:
