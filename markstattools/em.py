@@ -125,9 +125,11 @@ def download_from_ftp(from_folder: str,
                       root_key_list: list,
                       main_key: str,
                       main_table_name: str,
-                      key_columns: list) -> None:
+                      key_columns: list,
+                      max_tries: int = 10) -> None:
     more_to_go = True
-    while more_to_go:
+    tries = 1
+    while more_to_go and tries <= max_tries:
         try:
             print('Trying to download from FTP')
             with FTP(ftp_link) as ftp:
@@ -160,6 +162,7 @@ def download_from_ftp(from_folder: str,
                                 more_to_go = False
                     ftp.cwd('..')
         except:
+            tries = tries + 1
             print('Connection dropped.')
 
 
