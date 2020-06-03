@@ -77,34 +77,35 @@ def separate_tables(df: pd.DataFrame, main_table_name: str, key_columns: list) -
     data = {}
     data['delete'] = df.loc[df['operationCode']=='Delete', key_columns].copy()
     df = df.query('operationCode!="Delete"')
-    for table in df.columns:
-        if table.endswith('Details'):
-            if table.endswith('GoodsServicesDetails'):
-                GoodsServicesDetails = (df.loc[:, key_columns+[table]].copy()
-                                        .pipe(fully_flatten)
-                                        .pipe(clean_column_names, table))
-                if 'ClassificationVersion' in GoodsServicesDetails.columns:
-                    data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
-                                                                .loc[:, key_columns + ['ClassNumber', 'ClassificationVersion']]
-                                                                .copy()
-                                                                .drop_duplicates())
+    if main_table_name != 'Applicant':
+        for table in df.columns:
+            if table.endswith('Details'):
+                if table.endswith('GoodsServicesDetails'):
+                    GoodsServicesDetails = (df.loc[:, key_columns+[table]].copy()
+                                            .pipe(fully_flatten)
+                                            .pipe(clean_column_names, table))
+                    if 'ClassificationVersion' in GoodsServicesDetails.columns:
+                        data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
+                                                                    .loc[:, key_columns + ['ClassNumber', 'ClassificationVersion']]
+                                                                    .copy()
+                                                                    .drop_duplicates())
+                    else:
+                        data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
+                                                                    .loc[:, key_columns + ['ClassNumber']]
+                                                                    .copy()
+                                                                    .drop_duplicates())
+                    # The EUIPO captures the description in multiple languages for most applications.
+                    # Unfortunately, this makes the file sizes too large.
+                    # The descriptions will be filtered for English ones only.
+                    data[f"{main_table_name}.GoodsServices.Description"] = (GoodsServicesDetails
+                                                                            .loc[GoodsServicesDetails['GoodsServicesDescription|languageCode']=='en',
+                                                                                key_columns + ['GoodsServicesDescription|text', 'GoodsServicesDescription|languageCode']]
+                                                                            .copy()
+                                                                            .drop_duplicates())
+                    del GoodsServicesDetails
                 else:
-                    data[f"{main_table_name}.GoodsServices"] = (GoodsServicesDetails
-                                                                .loc[:, key_columns + ['ClassNumber']]
-                                                                .copy()
-                                                                .drop_duplicates())
-                # The EUIPO captures the description in multiple languages for most applications.
-                # Unfortunately, this makes the file sizes too large.
-                # The descriptions will be filtered for English ones only.
-                data[f"{main_table_name}.GoodsServices.Description"] = (GoodsServicesDetails
-                                                                        .loc[GoodsServicesDetails['GoodsServicesDescription|languageCode']=='en',
-                                                                             key_columns + ['GoodsServicesDescription|text', 'GoodsServicesDescription|languageCode']]
-                                                                        .copy()
-                                                                        .drop_duplicates())
-                del GoodsServicesDetails
-            else:
-                data[main_table_name + '.' + table.replace('Details', '')] = extract_sub_tree(df, extract_column=table, key_columns=key_columns)
-            df = df.drop(columns=table)
+                    data[main_table_name + '.' + table.replace('Details', '')] = extract_sub_tree(df, extract_column=table, key_columns=key_columns)
+                df = df.drop(columns=table)
     data[main_table_name.replace('Details', '')] = (df
                                                     .pipe(fully_flatten)
                                                     .pipe(clean_column_names)
@@ -184,7 +185,6 @@ def download_from_my_s3() -> None:
     folder = 'Applicant/Full'
     main_key = 'ApplicantDetails',
     main_table_name = 'Applicant',
-    key_columns = ['operationCode', 'ApplicantIdentifier']
     for zip_file in zip_file_list:
         zip_name = os.path.basename(zip_file).replace('.zip', '')
         if not os.path.exists(f'{save_path}/{folder}/{zip_name}'):
@@ -195,7 +195,7 @@ def download_from_my_s3() -> None:
                     .loc[:, [main_key]]
                     .pipe(flatten)
                     .pipe(clean_column_names, main_key)
-                    .pipe(separate_tables, main_table_name=main_table_name, key_columns=key_columns)),
+                    .pipe(separate_tables, main_table_name=main_table_name, key_columns=['operationCode', 'ApplicantIdentifier'])),
                 path=f'{save_path}/{folder}',
                 folder_name=zip_name
             )

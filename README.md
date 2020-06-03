@@ -14,6 +14,10 @@ IP Australia is looking to build a dataset that combines trade mark data from ar
 
 Note that this tool is still in development, and the primary users are the Data Engineer/Analyst in IP Australia. While it is possible for anybody to use this tool, it is recommended that you obtained the already built datasets that IP Australia provides, rather than trying to build your own by using this tool.
 
+## Requirements
+
+In addition to Python3, you will need connection to the internet. Preferably, you should have at least 32 GB of RAM to process the data. It will take a long time for all of the data to catch up to the "current" if you are starting from scratch. The daily updates from then on should take a few hours.
+
 ## How To
 
 As this is a tool only used by one or two Data Analysts at this point, documentation is not available.
@@ -26,7 +30,18 @@ You will need Python (3.6 or newer). Install the pacakge using pip:
 pip install markstattools
 ```
 
-### Build
+### Run
+
+Each dataset are built independently. Use the terminal (command prompt) to run the python scripts (you can run each line individually).
+
+```bash
+python -m markstattools.us
+python -m markstattools.ca
+python -m markstattools.em
+```
+
+The US and EM update their data daily, and CA weekly.
+
 
 #### Structure
 
@@ -42,21 +57,3 @@ A quick note on how the files will be managed:
     - upload: This is where the final datasets will be stored - but each table will be combined to one parquet file each.
 - Subfolders will be created using the two-letter code representing the jurisdiction.
 - Within each jurisdiction folder, each "table" will correspond to one parquet folder (which will contain the partitioned parquet files).
-
-The first time you build any dataset, it will take a very long time to catch up.
-
-#### US dataset
-
-To build/update US data, navigate to your MARKSTAT folder within terminal and use the following command:
-
-```bash
-python -m markstattools.us
-```
-
-#### CA dataset
-
-To build/update CA data, navigate to your MARKSTAT folder within terminal and use the following command:
-
-```bash
-python -m markstattools.ca
-```
