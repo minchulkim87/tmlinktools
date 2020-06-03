@@ -200,7 +200,6 @@ def download_from_my_s3() -> None:
                 folder_name=zip_name
             )
             print('    Downloaded.')
-    pass
 
 
 def download_all() -> None:
