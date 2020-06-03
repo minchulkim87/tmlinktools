@@ -187,6 +187,7 @@ def download_all() -> None:
         main_table_name='InternationalRegistration',
         key_columns=['operationCode', 'ApplicationNumber']
     )
+    # Implement download_from_wasabi
     download_from_ftp(
         from_folder='Trademark/Differential',
         zip_starts_with='DIFF_EUTMS',
@@ -211,6 +212,9 @@ def download_all() -> None:
         main_table_name='Applicant',
         key_columns=['operationCode', 'ApplicantIdentifier']
     )
+    # Some of the zip files for the representatives seem corrupt. Attempting to process them are resulting in infinite loop of failure.
+    # The representative dataset is not of critical value for now. So we will skip.
+    """
     download_from_ftp(
         from_folder='Representative/Full',
         zip_starts_with='REPS',
@@ -227,6 +231,7 @@ def download_all() -> None:
         main_table_name='Representative',
         key_columns=['operationCode', 'RepresentativeIdentifier']
     )
+    """
 
 
 
