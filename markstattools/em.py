@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 from ftplib import FTP
+from urllib import request
 import glob
 from typing import Callable, Iterator, Union
 import json
@@ -170,6 +171,38 @@ def download_from_ftp(from_folder: str,
         print('No more files to download.')
 
 
+# The FTP server seems to have deleted the historical and some differential files for Applicants.
+# I have downloaded these before and have made them available on my account. Until EUIPO repairs this, I will use my account to download.
+
+def download_from_my_s3() -> None:
+    base_url = 'https://s3.wasabisys.com/markstat-euipo/Applicant/Full'
+    zip_file_list = [
+        'APPLICANTS_20191022_0001.zip',
+        'APPLICANTS_20191022_0002.zip',
+        'APPLICANTS_20191022_0003.zip'
+    ]
+    folder = 'Applicant/Full'
+    main_key = 'ApplicantDetails',
+    main_table_name = 'Applicant',
+    key_columns = ['operationCode', 'ApplicantIdentifier']
+    for zip_file in zip_file_list:
+        zip_name = os.path.basename(zip_file).replace('.zip', '')
+        if not os.path.exists(f'{save_path}/{folder}/{zip_name}'):
+            print(f'Downloading: {folder}/{zip_name}')
+            request.urlretrieve(f'{base_url}/{zip_file}', f'{save_path}/temp.zip')
+            save_all_tables(
+                (pdx.read_xml(f'{save_path}/temp.zip', root_key_list)
+                    .loc[:, [main_key]]
+                    .pipe(flatten)
+                    .pipe(clean_column_names, main_key)
+                    .pipe(separate_tables, main_table_name=main_table_name, key_columns=key_columns)),
+                path=f'{save_path}/{folder}',
+                folder_name=zip_name
+            )
+            print('    Downloaded.')
+    pass
+
+
 def download_all() -> None:
     download_from_ftp(
         from_folder='Trademark/Full',
@@ -187,7 +220,7 @@ def download_all() -> None:
         main_table_name='InternationalRegistration',
         key_columns=['operationCode', 'ApplicationNumber']
     )
-    # Implement download_from_wasabi
+    download_from_my_s3() # to download historical Applicant data
     download_from_ftp(
         from_folder='Trademark/Differential',
         zip_starts_with='DIFF_EUTMS',
