@@ -366,11 +366,13 @@ def get_download_folder_list(schema: str) -> list:
     top_folders = ['Full', 'Differential']
     for top_folder in top_folders:
         mid_folders = get_subfolders(f'{save_path}/{schema}/{top_folder}')
+        mid_folders.sort()
         for mid_folder in mid_folders:
             bottom_folders = get_subfolders(f'{save_path}/{schema}/{top_folder}/{mid_folder}')
+            bottom_folders = [f'{save_path}/{schema}/{top_folder}/{mid_folder}/{bottom_folder}' for bottom_folder in bottom_folders]
             bottom_folders.sort()
             for bottom_folder in bottom_folders:
-                folder_list.append(f'{save_path}/{schema}/{top_folder}/{mid_folder}/{bottom_folder}')
+                folder_list.append(bottom_folder)
     return folder_list
 
 
