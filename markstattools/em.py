@@ -24,7 +24,11 @@ upload_folder_path = './upload/em'
 
 ftp_link = 'ftp.euipo.europa.eu'
 root_key_list = ['Transaction', 'TradeMarkTransactionBody', 'TransactionContentDetails', 'TransactionData']
-
+key_column_dict = {
+    'Trademark': 'ApplicationNumber',
+    'InternationalRegistration': 'ApplicationNumber',
+    'Applicant': 'ApplicantIdentifier'
+}
 
 # -------------------------------------------------------------------------------------
 # These functions will help download all the files and save them locally.
@@ -182,7 +186,7 @@ def download_from_my_s3() -> None:
         'APPLICANTS_20191022_0002.zip',
         'APPLICANTS_20191022_0003.zip'
     ]
-    folder = 'Applicant/Full/All'
+    folder = 'Applicant/Full/2019'
     main_key = 'ApplicantDetails'
     main_table_name = 'Applicant'
     for zip_file in zip_file_list:
@@ -227,7 +231,7 @@ def download_all() -> None:
             key_columns=['operationCode', 'ApplicationNumber']
         )
 
-    if not os.path.exists(f'{save_path}/Applicant/Full/All/APPLICANTS_20191022_0001'):
+    if not os.path.exists(f'{save_path}/Applicant/Full/2019/APPLICANTS_20191022_0001'):
         download_from_my_s3()
 
     download_from_ftp(
@@ -279,11 +283,61 @@ def download_all() -> None:
     """
 
 
-
 # -------------------------------------------------------------------------------------
 # These functions will help read the downloaded files and combine them.
 # -------------------------------------------------------------------------------------
 
+
+def get_files_in_folder(folder: str, file_extension: str) -> list:
+    return glob.glob(f"{folder}/*.{file_extension}")
+
+
+def get_subfolders(folder: str) -> list:
+    return [f.name for f in os.scandir(folder) if f.is_dir()]
+
+
+def remove_unnecessary(df: dd.DataFrame) -> dd.DataFrame:
+    return (df
+            .loc[:, df.columns != 'operationCode']
+            .drop_duplicates())
+
+
+def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
+                                               keys_in_df: Union[pd.DataFrame, dd.DataFrame],
+                                               key_column: str) -> pd.DataFrame:
+    return (remove_from_df
+            .loc[~remove_from_df[key_column].isin(keys_in_df[key_column].unique()), :])
+
+
+def removed_keys_from_one_dataframe_in_another_dask(remove_from_df: dd.DataFrame,
+                                                    keys_in_df: dd.DataFrame,
+                                                    key_column: str) -> dd.DataFrame:
+    return (remove_from_df
+            .map_partitions(
+                removed_keys_from_one_dataframe_in_another,
+                keys_in_df=keys_in_df,
+                key_column=key_column
+            ))
+
+
+def delete_then_append_dataframe(old_df: dd.DataFrame,
+                                 new_df: dd.DataFrame,
+                                 deletes: pd.DataFrame,
+                                 key_column: str) -> dd.DataFrame:
+    return removed_keys_from_one_dataframe_in_another_dask(
+        removed_keys_from_one_dataframe_in_another_dask(old_df, deletes, key_column),
+        new_df,
+        key_column=key_column
+    ).append(new_df)
+
+
+def save(df: dd.DataFrame, path: str) -> None:
+    (df
+     .map_partitions(clean_data_types)
+     .to_parquet(path,
+                 engine='pyarrow',
+                 compression='snappy',
+                 allow_truncated_timestamps=True))
 
 
 # These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
@@ -294,10 +348,10 @@ def backup() -> None:
     shutil.copytree(data_path, backup_path)
 
 
-def commit(update_version: str) -> None:
+def commit(schema: str, update_version: str) -> None:
     shutil.rmtree(data_path)
     shutil.copytree(temp_path, data_path)
-    # write_latest_folder_name(update_version)
+    write_latest_folder_name(schema, update_version)
     shutil.rmtree(temp_path)
 
 
@@ -307,6 +361,83 @@ def rollback() -> None:
     shutil.rmtree(backup_path)
 
 
+def get_download_folder_list(schema: str) -> list:
+    folder_list = []
+    top_folders = ['Full', 'Differential']
+    for top_folder in top_folders:
+        mid_folders = get_subfolders(f'{save_path}/{schema}/{top_folder}')
+        for mid_folder in mid_folders:
+            bottom_folders = get_subfolders(f'{save_path}/{schema}/{top_folder}/{mid_folder}')
+            bottom_folders.sort()
+            for bottom_folder in bottom_folders:
+                folder_list.append(f'{save_path}/{schema}/{top_folder}/{mid_folder}/{bottom_folder}')
+    return folder_list
+
+
+def get_next_folder_name(schema: str) -> str:
+    if os.path.exists(f'{data_path}/{schema}-updates.json'):
+        with open(f'{data_path}/{schema}-updates.json', 'r') as jf:
+            latest = json.loads(jf.read())['latest']
+        download_folder_list = get_download_folder_list(schema=schema)
+        index = download_folder_list.index(latest)
+        if 0 <= index < len(download_folder_list) - 1:
+            return download_folder_list[index+1]
+        else:
+            return None
+    else:
+        if schema == 'Trademark':
+            return f'{save_path}/Trademark/Full/1996/EUTMS_20191023_0001'
+        elif schema == 'InternationalRegistration':
+            return f'{save_path}/InternationalRegistration/Full/2004/IRS_20191026_0001'
+        elif schema == 'Applicant':
+            return f'{save_path}/Applicant/Full/2019/APPLICANTS_20191022_0003'
+
+
+def write_latest_folder_name(schema: str, update_version: str) -> None:
+    with open(f'{data_path}/{schema}-updates.json', 'w') as jf:
+        json.dump({'latest': update_version}, jf)
+
+
+# This function is the high-level wrap for the merging process.
+
+
+def update_file(file_path: str, deletes: pd.DataFrame, key_column: str) -> None:
+    table_name = os.path.basename(file_path).replace('.parquet', '')
+    print(f'    {table_name}')
+    temp_file_path = f'{temp_path}/{table_name}'
+    target_file_path = f'{data_path}/{table_name}'
+    if os.path.exists(target_file_path):
+        (delete_then_append_dataframe(dd.read_parquet(target_file_path),
+                                      dd.read_parquet(file_path).pipe(remove_unnecessary),
+                                      deletes,
+                                      key_column=key_column)
+        .pipe(save, temp_file_path))
+    else:
+        (dd.read_parquet(file_path).pipe(remove_unnecessary)
+        .pipe(save, temp_file_path))
+
+
+# This is an extra function to combine the parquet files into one file each.
+
+
+def make_each_table_as_single_file() -> None:
+    tables = get_subfolders(data_path)
+    for table in tables:
+        print(f'    {table}')
+        try:
+            (dd.read_parquet(f'{data_path}/{table}')
+             .compute()
+             .pipe(clean_data_types)
+             .to_parquet(f'{upload_folder_path}/{table}.parquet',
+                         engine='pyarrow',
+                         compression='snappy',
+                         allow_truncated_timestamps=True,
+                         index=False))
+        except Exception as error:
+            print('    Failed.')
+            raise error
+
+
 # -------------------------------------------------------------------------------------
 # This function will automate everything.
 # -------------------------------------------------------------------------------------
@@ -314,7 +445,34 @@ def rollback() -> None:
 
 def update_all() -> None:
     download_all()
-    print("Merging not implemented yet")
+    for schema in ['Trademark', 'InternationalRegistration', 'Applicant']:
+        if get_next_folder_name(schema):
+            update_version = get_next_folder_name(schema)
+        else:
+            update_version = None
+        updated = False
+        while update_version:
+            print("Backing up.")
+            backup()
+            try:
+                print(f"Merging in: {update_version}")
+                deletes = pd.read_parquet(f'{update_version}/delete.parquet')
+                for parquet_file in get_files_in_folder(update_version, 'parquet'):
+                    if 'delete' not in parquet_file:
+                        update_file(parquet_file, deletes, key_column=key_column_dict[schema])
+                print("Committing changes.")
+                commit(schema, update_version)
+                update_version = get_next_folder_name(schema)
+                updated = True
+            except Exception as error:
+                print("Failed. Rolling back.")
+                rollback()
+                updated = False
+                update_version = None
+                raise error
+    if updated:
+        print('Preparing upload files')
+        make_each_table_as_single_file()
     print("Done")
 
 
