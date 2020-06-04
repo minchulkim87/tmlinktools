@@ -2,7 +2,8 @@ import os
 import sys
 import shutil
 from ftplib import FTP
-from urllib import request
+#from urllib import request
+import requests
 import glob
 from typing import Callable, Iterator, Union
 import json
@@ -127,7 +128,7 @@ def download_from_ftp(from_folder: str,
                       main_key: str,
                       main_table_name: str,
                       key_columns: list,
-                      max_tries: int = 10) -> None:
+                      max_tries: int = 3) -> None:
     more_to_go = True
     tries = 1
     while more_to_go and tries <= max_tries:
@@ -181,14 +182,18 @@ def download_from_my_s3() -> None:
         'APPLICANTS_20191022_0002.zip',
         'APPLICANTS_20191022_0003.zip'
     ]
-    folder = 'Applicant/Full'
+    folder = 'Applicant/Full/All'
     main_key = 'ApplicantDetails'
     main_table_name = 'Applicant'
     for zip_file in zip_file_list:
         zip_name = os.path.basename(zip_file).replace('.zip', '')
         if not os.path.exists(f'{save_path}/{folder}/{zip_name}'):
             print(f'Downloading: {folder}/{zip_name}')
-            request.urlretrieve(f'{base_url}/{zip_file}', f'{save_path}/temp.zip')
+            #request.urlretrieve(f'{base_url}/{zip_file}', f'{save_path}/temp.zip')
+            res = requests.get(f'{base_url}/{zip_file}', stream=True)
+            if res.status_code == 200:
+                with open(f'{save_path}/temp.zip', 'wb') as f:
+                    shutil.copyfileobj(res.raw, f)
             save_all_tables(
                 (pdx.read_xml(f'{save_path}/temp.zip', root_key_list)
                     .loc[:, [main_key]]
@@ -202,23 +207,29 @@ def download_from_my_s3() -> None:
 
 
 def download_all() -> None:
-    download_from_ftp(
-        from_folder='Trademark/Full',
-        zip_starts_with='EUTMS',
-        root_key_list=root_key_list,
-        main_key='TradeMarkDetails',
-        main_table_name='TradeMark',
-        key_columns=['operationCode', 'ApplicationNumber']
-    )
-    download_from_ftp(
-        from_folder='InternationalRegistration/Full',
-        zip_starts_with='IRS',
-        root_key_list=root_key_list,
-        main_key='TradeMarkDetails',
-        main_table_name='InternationalRegistration',
-        key_columns=['operationCode', 'ApplicationNumber']
-    )
-    download_from_my_s3() # to download historical Applicant data
+    if not os.path.exists(f'{save_path}/Trademark/Full/2019/EUTMS_20191023_0004'):
+        download_from_ftp(
+            from_folder='Trademark/Full',
+            zip_starts_with='EUTMS',
+            root_key_list=root_key_list,
+            main_key='TradeMarkDetails',
+            main_table_name='TradeMark',
+            key_columns=['operationCode', 'ApplicationNumber']
+        )
+
+    if not os.path.exists(f'{save_path}/InternationalRegistration/Full/2019/IRS_20191026_0001'):
+        download_from_ftp(
+            from_folder='InternationalRegistration/Full',
+            zip_starts_with='IRS',
+            root_key_list=root_key_list,
+            main_key='TradeMarkDetails',
+            main_table_name='InternationalRegistration',
+            key_columns=['operationCode', 'ApplicationNumber']
+        )
+
+    if not os.path.exists(f'{save_path}/Applicant/Full/All/APPLICANTS_20191022_0001'):
+        download_from_my_s3()
+
     download_from_ftp(
         from_folder='Trademark/Differential',
         zip_starts_with='DIFF_EUTMS',
@@ -227,6 +238,7 @@ def download_all() -> None:
         main_table_name='TradeMark',
         key_columns=['operationCode', 'ApplicationNumber']
     )
+
     download_from_ftp(
         from_folder='InternationalRegistration/Differential',
         zip_starts_with='DIFF_IRS',
@@ -235,6 +247,7 @@ def download_all() -> None:
         main_table_name='InternationalRegistration',
         key_columns=['operationCode', 'ApplicationNumber']
     )
+
     download_from_ftp(
         from_folder='Applicant/Differential',
         zip_starts_with='DIFF_APPLICANTS',
@@ -243,6 +256,7 @@ def download_all() -> None:
         main_table_name='Applicant',
         key_columns=['operationCode', 'ApplicantIdentifier']
     )
+
     # Some of the zip files for the representatives seem corrupt. Attempting to process them are resulting in infinite loop of failure.
     # The representative dataset is not of critical value for now. So we will skip.
     """

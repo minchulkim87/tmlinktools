@@ -4,6 +4,7 @@ temp/
 data/
 upload/
 *.ipynb
+*.sh
 dist/
 build/
 *.egg-info
