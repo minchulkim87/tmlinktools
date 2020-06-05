@@ -15,7 +15,7 @@ def get_subfolders(folder: str) -> list:
     return [f.name for f in os.scandir(folder) if f.is_dir()]
 
 
-folders = ['us', 'ca']
+folders = get_subfolders(upload_path)
 files = {}
 columns = {}
 
