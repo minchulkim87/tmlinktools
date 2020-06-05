@@ -25,7 +25,7 @@ for folder in folders:
     files[folder] = [os.path.basename(parquet_file) for parquet_file in files_list]
     columns[folder] = {}
     for parquet_file in files_list:
-        columns[folder][os.path.basename(parquet_file)] = list(pd.read_parquet(parquet_file).columns)
+        columns[folder][os.path.basename(parquet_file)] = [column for column in pd.read_parquet(parquet_file).columns]
 
 
 template = """
@@ -137,18 +137,18 @@ template = """
                             <th>Columns</th>
                         </thead>
                         <tbody>
-                            <tr>
-                                {% for parquet_file in files[folder] %}
+                            {% for parquet_file in files[folder] %}
+                                <tr>
                                     <td>{{ parquet_file }}</td>
                                     <td>
                                         <ul>
                                             {% for column in columns[folder][parquet_file] %}
-                                                <li>column</li>
+                                                <li>{{ column }}</li>
                                             {% endfor %}
                                         </ul>
                                     </td>
-                                {% endfor %}
-                            </tr>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
