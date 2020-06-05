@@ -346,6 +346,7 @@ def backup() -> None:
     if os.path.exists(backup_path):
         shutil.rmtree(backup_path)
     shutil.copytree(data_path, backup_path)
+    shutil.copytree(data_path, temp_path)
 
 
 def commit(schema: str, update_version: str) -> None:
