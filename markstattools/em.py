@@ -346,6 +346,8 @@ def backup() -> None:
     if os.path.exists(backup_path):
         shutil.rmtree(backup_path)
     shutil.copytree(data_path, backup_path)
+    if os.path.exists(temp_path):
+        shutil.rmtree(temp_path)
     shutil.copytree(data_path, temp_path)
 
 
