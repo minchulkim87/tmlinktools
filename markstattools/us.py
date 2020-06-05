@@ -266,7 +266,7 @@ def update_all() -> None:
             print(f"Merging in: {update_version}")
             parquet_files = get_files_in_folder(update_version, 'parquet')
             for parquet_file in parquet_files:
-                update_file(parquet_file) for parquet_file in parquet_files
+                update_file(parquet_file)
             print("Committing changes.")
             commit(update_version)
             update_version = get_next_folder_name()
