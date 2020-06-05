@@ -47,6 +47,54 @@ template = """
 
         <section class="section">
             <div class="container">
+                <h1 class="title is-2">Files</h1>
+                <p>All links to the files begin with <code>https://s3.wasabisys.com/markstat/</code></p>
+                <p>Add the folder name and file name after this link base.</p>
+                <br>
+                <article class="message is-info">
+                    <div class="message-header">
+                        Example
+                    </div>
+                    <div class="message-body">
+                        https://s3.wasabisys.com/markstat/us/case-file-header.parquet
+                    </div>
+                </article>
+            </div>
+        </section>
+
+
+        <section class="section">
+            <div class="container">
+                <table class="table is-bordered is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <th>Folder (IP Office Code)</th>
+                        <th>File (Data Table)</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td></td>
+                            <td>trademark.parquet</td>
+                        </tr>
+                        {% for folder in folders %}
+                            <tr>
+                                <td>{{ folder }}</td>
+                                <td>
+                                    <ul>
+                                        {% for parquet_file in files[folder] %}
+                                            <li>{{ parquet_file }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+
+        <section class="section">
+            <div class="container">
                 <h1 class="subtitle is-3">Parquet</h1>
                 <p>Due to the size of the dataset, the data is saved as parquet files.</p>
                 <br>
@@ -83,16 +131,23 @@ template = """
 
         <section class="section">
             <div class="container">
-                <h1 class="title is-2">Files</h1>
-                <p>All links to the files begin with <code>https://s3.wasabisys.com/markstat/</code></p>
-                <p>Add the folder name and file name after this link base.</p>
+                <h1 class="title is-2">Columns</h1>
                 <br>
-                <article class="message is-info">
+                <article class="message is-warning">
                     <div class="message-header">
-                        Example
+                        Duplicate Rows
                     </div>
                     <div class="message-body">
-                        https://s3.wasabisys.com/markstat/us/case-file-header.parquet
+                        The data has been restructured to be "flat". When you select columns, be sure to drop the duplicates as some information can be repeated in the provided structure.
+                    </div>
+                </article>
+                <br>
+                <article class="message is-warning">
+                    <div class="message-header">
+                        Long Column Names
+                    </div>
+                    <div class="message-body">
+                        Because the data had to be flattened out from a "tree" structure, the branch structures are reflected in column names. They can get quite long.
                     </div>
                 </article>
             </div>
@@ -154,6 +209,7 @@ template = """
                 </div>
             </section>
         {% endfor %}
+
 
     </body>
 </html>
