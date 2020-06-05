@@ -264,16 +264,18 @@ def update_all() -> None:
         backup()
         try:
             print(f"Merging in: {update_version}")
-            [update_file(parquet_file) for parquet_file in get_files_in_folder(update_version, 'parquet')]
+            parquet_files = get_files_in_folder(update_version, 'parquet')
+            dask.compute([update_file(parquet_file) for parquet_file in parquet_files])
             print("Committing changes.")
             commit(update_version)
             update_version = get_next_folder_name()
             updated = True
-        except:
+        except Exception as error:
             print("Failed. Rolling back.")
             rollback()
             updated = False
             update_version = None
+            raise error
     if updated:
         print('Preparing upload files')
         make_each_table_as_single_file()

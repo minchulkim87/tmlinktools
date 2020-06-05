@@ -421,7 +421,7 @@ def update_all() -> None:
             deletes = pd.read_parquet(f'{save_path}/{update_version}/delete.parquet')
             parquet_files = [parquet_file for parquet_file in get_files_in_folder(f'{save_path}/{update_version}', 'parquet')
                              if 'delete' not in parquet_file]
-            [update_file(parquet_file, deletes) for parquet_file in parquet_files]
+            dask.compute([update_file(parquet_file, deletes) for parquet_file in parquet_files])
             print("Committing changes.")
             commit(update_version)
             update_version = get_next_folder_name()
