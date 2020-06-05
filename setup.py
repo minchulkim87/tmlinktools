@@ -2,7 +2,7 @@ from pathlib import Path
 from setuptools import setup
 from setuptools import find_packages
 
-version = "0.3.0"
+version = "0.3.1"
 description = "Python tools to help build the MARKSTAT - a global trade mark dataset."
 
 source_root = Path(".")
@@ -17,8 +17,8 @@ setup(
         "chardet==3.0.4",
         "click==7.1.2",
         "cloudpickle==1.4.1",
-        "dask[complete]==2.16.0",
-        "distributed==2.16.0",
+        "dask[complete]==2.17.2",
+        "distributed==2.17.0",
         "fsspec==0.7.4",
         "heapdict==1.0.1",
         "idna==2.9",
