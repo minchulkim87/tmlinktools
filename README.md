@@ -38,6 +38,7 @@ Each dataset are built independently. Use the terminal (command prompt) to run t
 python -m markstattools.us
 python -m markstattools.ca
 python -m markstattools.em
+python -m markstattools.trademarks
 ```
 
 The US and EM update their data daily, and CA weekly.
