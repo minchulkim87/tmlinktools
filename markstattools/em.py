@@ -408,9 +408,9 @@ def write_latest_folder_name(schema: str, update_version: str) -> None:
 # This function is the high-level wrap for the merging process.
 
 
-@dask.delayed
 def update_file(file_path: str, deletes: pd.DataFrame, key_column: str) -> None:
     table_name = os.path.basename(file_path).replace('.parquet', '')
+    print(f'    {table_name}')
     temp_file_path = f'{temp_path}/{table_name}'
     target_file_path = f'{data_path}/{table_name}'
     if os.path.exists(target_file_path):
@@ -466,17 +466,17 @@ def update_all() -> None:
                 deletes = pd.read_parquet(f'{update_version}/delete.parquet')
                 parquet_files = [parquet_file for parquet_file in get_files_in_folder(update_version, 'parquet')
                                  if 'delete' not in parquet_file]
-                dask.compute([update_file(parquet_file, deletes, key_column=key_column_dict[schema]) for parquet_file in parquet_files])
+                for parquet_file in parquet_files:
+                    update_file(parquet_file, deletes, key_column=key_column_dict[schema])
                 print("Committing changes.")
                 commit(schema, update_version)
                 update_version = get_next_folder_name(schema)
                 updated = True
-            except Exception as error:
+            except:
                 print("Failed. Rolling back.")
                 rollback()
                 updated = False
                 update_version = None
-                raise error
     if updated:
         print('Preparing upload files')
         make_each_table_as_single_file()
