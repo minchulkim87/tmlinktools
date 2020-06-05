@@ -15,7 +15,6 @@ dask = {extras = ["complete"],version = "*"}
 numpy = "*"
 toolz = "*"
 lxml = "*"
-jinja2 = "*"
 
 [requires]
 python_version = "3.7"
