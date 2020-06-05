@@ -18,6 +18,14 @@ data_reference = {
             'application_date': 'ApplicationDate',
             'registration_date': 'RegistrationDate'
         }
+    },
+    'em': {
+        'file_names': ['TradeMark.parquet', 'InternationalRegistration.parquet'],
+        'columns': {
+            'application_number': 'ApplicationNumber',
+            'application_date': 'ApplicationDate',
+            'registration_date': 'RegistrationDate'
+        }
     }
 }
 
