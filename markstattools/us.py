@@ -172,7 +172,7 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 def save(df: dd.DataFrame, path: str) -> None:
     if os.path.exists(path):
         shutil.rmtree(path)
-    if df.npartitions >= 48:
+    if df.npartitions >= 64:
         print('        Too many partitions. Repartitioning.')
         (df
         .map_partitions(clean)
