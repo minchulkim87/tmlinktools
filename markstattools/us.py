@@ -134,8 +134,19 @@ def get_subfolders(folder: str) -> list:
     return [f.name for f in os.scandir(folder) if f.is_dir()]
 
 
-def remove_unnecessary(df: dd.DataFrame) -> dd.DataFrame:
-    return df.drop(columns=['action-key'])
+def remove_unnecessary(df: dd.DataFrame, drop_duplicates: bool=False) -> dd.DataFrame:
+    unnecessary_columns = [
+        'action-key',
+        'classification|international-code-total-no',
+        'classification|us-code-total-no',
+        'classification|us-code'
+    ]
+    for column in unnecessary_columns:
+        if column in df.columns:
+            df = df.drop(columns=column)
+    if drop_duplicates:
+        df = df.drop_duplicates()
+    return df
 
 
 def removed_keys_from_one_dataframe_in_another(remove_from_df: pd.DataFrame,
@@ -161,11 +172,11 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 def save(df: dd.DataFrame, path: str) -> None:
     if os.path.exists(path):
         shutil.rmtree(path)
-    if df.npartitions >= 24:
+    if df.npartitions >= 48:
         print('        Too many partitions. Repartitioning.')
         (df
         .map_partitions(clean)
-        .repartition(npartitions=16)
+        .repartition(npartitions=32)
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
@@ -228,16 +239,30 @@ def write_latest_folder_name(update_version: str) -> None:
 
 def update_file(file_path: str) -> None:
     table_name = os.path.basename(file_path).replace('.parquet', '')
-    print(f'    {table_name}')
-    temp_file_path = f'{temp_path}/{table_name}'
-    target_file_path = f'{data_path}/{table_name}'
-    if os.path.exists(target_file_path):
-        (delete_then_append_dataframe(dd.read_parquet(target_file_path),
-                                      dd.read_parquet(file_path).pipe(remove_unnecessary))
-        .pipe(save, temp_file_path))
+    if table_name == 'case-file-event-statements':
+        pass # more than 159 million rows of data. dropping. sorry
+    elif table_name == 'classifications':
+        print(f'    {table_name}')
+        temp_file_path = f'{temp_path}/{table_name}'
+        target_file_path = f'{data_path}/{table_name}'
+        if os.path.exists(target_file_path):
+            (delete_then_append_dataframe(dd.read_parquet(target_file_path),
+                                          dd.read_parquet(file_path).pipe(remove_unnecessary, drop_duplicates=True))
+            .pipe(save, temp_file_path))
+        else:
+            (dd.read_parquet(file_path).pipe(remove_unnecessary, drop_duplicates=True)
+            .pipe(save, temp_file_path))
     else:
-        (dd.read_parquet(file_path).pipe(remove_unnecessary)
-        .pipe(save, temp_file_path))
+        print(f'    {table_name}')
+        temp_file_path = f'{temp_path}/{table_name}'
+        target_file_path = f'{data_path}/{table_name}'
+        if os.path.exists(target_file_path):
+            (delete_then_append_dataframe(dd.read_parquet(target_file_path),
+                                          dd.read_parquet(file_path).pipe(remove_unnecessary))
+            .pipe(save, temp_file_path))
+        else:
+            (dd.read_parquet(file_path).pipe(remove_unnecessary)
+            .pipe(save, temp_file_path))
 
 
 # This is an extra function to combine the parquet files into one file each.
