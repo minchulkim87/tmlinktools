@@ -176,7 +176,7 @@ def save(df: dd.DataFrame, path: str) -> None:
         print('        Too many partitions. Repartitioning.')
         (df
         .map_partitions(clean)
-        .repartition(npartitions=32)
+        .repartition(partition_size='512MB')
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
