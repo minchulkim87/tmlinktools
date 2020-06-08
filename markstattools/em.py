@@ -334,12 +334,22 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 def save(df: dd.DataFrame, path: str) -> None:
     if os.path.exists(path):
         shutil.rmtree(path)
-    (df
-     .map_partitions(clean_data_types)
-     .to_parquet(path,
-                 engine='pyarrow',
-                 compression='snappy',
-                 allow_truncated_timestamps=True))
+    if df.npartitions >= 24:
+        print('        Too many partitions. Repartitioning.')
+        (df
+        .map_partitions(clean_data_types)
+        .repartition(npartitions=16)
+        .to_parquet(path,
+                    engine='pyarrow',
+                    compression='snappy',
+                    allow_truncated_timestamps=True))
+    else:
+        (df
+        .map_partitions(clean_data_types)
+        .to_parquet(path,
+                    engine='pyarrow',
+                    compression='snappy',
+                    allow_truncated_timestamps=True))
 
 
 # These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
