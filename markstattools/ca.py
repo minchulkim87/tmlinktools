@@ -310,11 +310,11 @@ def delete_then_append_dataframe(old_df: dd.DataFrame,
 def save(df: dd.DataFrame, path: str) -> None:
     if os.path.exists(path):
         shutil.rmtree(path)
-    if df.npartitions >= 32:
+    if df.npartitions >= 48:
         print('        Too many partitions. Repartitioning.')
         (df
         .map_partitions(clean_data_types)
-        .repartition(partition_size='256MB')
+        .repartition(partition_size='512MB')
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
