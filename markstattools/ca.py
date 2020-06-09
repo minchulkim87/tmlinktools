@@ -320,7 +320,6 @@ def save(df: dd.DataFrame, path: str) -> None:
                     compression='snappy',
                     allow_truncated_timestamps=True))
     else:
-        print('        Too many partitions. Repartitioning.')
         (df
         .map_partitions(clean_data_types)
         .to_parquet(path,
