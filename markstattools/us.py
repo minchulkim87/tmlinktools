@@ -53,24 +53,14 @@ def get_daily_zip_file_path_list() -> list:
             for _date in daterange(start_date, end_date)]
 
 
-def convert_date_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return (df.apply(lambda column:
-                     pd.to_datetime(column, format='%Y%m%d', errors='coerce')
-                     if 'date' in column.name
-                     else column))
-
-
-def convert_boolean_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return (df.apply(lambda column:
-                     column.fillna(False).replace('F', False).replace('T', True)
-                     if column.name.endswith('-in')
-                     else column))
-
-
 def clean(df: pd.DataFrame) -> pd.DataFrame:
-    return (df
-            .pipe(convert_boolean_columns)
-            .pipe(convert_date_columns))
+    temp = df.copy()
+    for column in temp.columns:
+        if 'date' in column:
+            temp[column] = pd.to_datetime(temp[column], format='%Y%m%d', errors='coerce')
+        elif column.endswith('-in'):
+            temp[column] = temp[column].fillna(False).replace('F', False).replace('T', True)
+    return temp
 
 
 def clean_all_tables(data: dict) -> dict:
