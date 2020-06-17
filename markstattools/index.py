@@ -73,7 +73,11 @@ template = """
                     <tbody>
                         <tr>
                             <td></td>
-                            <td>trademark.parquet</td>
+                            <td>
+                                <ul>
+                                    <li><a href="https://s3.wasabisys.com/markstat/trademarks.parquet">trademarks.parquet</a></li>
+                                </ul>
+                            </td>
                         </tr>
                         {% for folder in folders %}
                             <tr>
@@ -81,7 +85,7 @@ template = """
                                 <td>
                                     <ul>
                                         {% for parquet_file in files[folder] %}
-                                            <li>{{ parquet_file }}</li>
+                                            <li><a href="https://s3.wasabisys.com/markstat/{{ folder }}/{{ parquet_file }}">{{ parquet_file }}</a></li>
                                         {% endfor %}
                                     </ul>
                                 </td>
