@@ -170,7 +170,7 @@ template = """
                     </thead>
                     <tbody>
                         <tr>
-                            <td>trademark.parquet</td>
+                            <td>trademarks.parquet</td>
                             <td>
                                 <ul>
                                     <li>ip_office</li>
