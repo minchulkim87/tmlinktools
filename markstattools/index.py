@@ -16,12 +16,14 @@ def get_subfolders(folder: str) -> list:
 
 
 folders = get_subfolders(upload_path)
+folders.sort()
 files = {}
 columns = {}
 
 
 for folder in folders:
     files_list = get_files_in_folder(folder=f'{upload_path}/{folder}', file_extension='parquet')
+    files_list.sort()
     files[folder] = [os.path.basename(parquet_file) for parquet_file in files_list]
     columns[folder] = {}
     for parquet_file in files_list:
