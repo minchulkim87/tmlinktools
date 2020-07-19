@@ -115,7 +115,7 @@ template = """
                         <pre>pip install pyarrow<br>pip install pandas</pre>
                         <br>
                         Use pandas to read parquet
-                        <pre>import pandas as pd<br>df = pd.read_parquet('https://s3.wasabisys.com/markstat/us/case-file-header.parquet')</pre>
+                        <pre>import pandas as pd<br>df = pd.read_parquet('https://s3.wasabisys.com/markstat/trademarks.parquet')</pre>
                     </div>
                 </article>
                 <br>
@@ -128,7 +128,7 @@ template = """
                         <pre>install.packages("arrow")</pre>
                         <br>
                         Use arrow to read parquet
-                        <pre>library(arrow)<br>df &#60;- read_parquet('https://s3.wasabisys.com/markstat/us/case-file-header.parquet')</pre>
+                        <pre>library(arrow)<br>download.file('https://s3.wasabisys.com/markstat/trademarks.parquet', 'trademarks.parquet')<br>df &#60;- read_parquet('trademarks.parquet')</pre>
                     </div>
                 </article>
             </div>
