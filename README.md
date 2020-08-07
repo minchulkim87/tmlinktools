@@ -1,6 +1,6 @@
 # markstattools
 
-Developed for/by IP Australia for the MARKSTAT project - an international trade mark dataset.
+Developed for/by IP Australia for the TM-Link project - an international trade mark dataset.
 
 ## Background
 
@@ -8,7 +8,7 @@ We want to have access to intellecutal property data from around the world. Trad
 
 IP Australia is looking to build a dataset that combines trade mark data from around the world. But there are challenges. Often, the data are provided by the individual IP offices as XML files, each with a different set of schemas. Some have TXT or CSV files, and others provide JSON data via APIs. The data wrangling requires a lot of effort. Not only because of the varying file types, data formats, and delivery channels, but also because the file sizes are typically inaccessible through spreadsheets.
 
-`markstattools` is a set of tools to help build the trade mark dataset by accessing open data, working through these challenges, and making the data ready (or close to ready) for use by researchers without the researchers having to deal with the data wrangling.
+`tmlinktools` is a set of tools to help build the trade mark dataset by accessing open data, working through these challenges, and making the data ready (or close to ready) for use by researchers without the researchers having to deal with the data wrangling.
 
 ## Note
 
@@ -27,7 +27,7 @@ As this is a tool only used by one or two Data Analysts at this point, documenta
 You will need Python (3.6 or newer). Install the pacakge using pip:
 
 ```bash
-pip install markstattools
+pip install tmlinktools
 ```
 
 ### Run
@@ -35,11 +35,11 @@ pip install markstattools
 Each dataset are built independently. Use the terminal (command prompt) to run the python scripts (you can run each line individually).
 
 ```bash
-python -m markstattools.us
-python -m markstattools.ca
-python -m markstattools.em
-python -m markstattools.summary
-python -m markstattools.index
+python -m tmlinktools.us
+python -m tmlinktools.ca
+python -m tmlinktools.em
+python -m tmlinktools.summary
+python -m tmlinktools.index
 ```
 
 The US and EM update their data daily, and CA weekly.

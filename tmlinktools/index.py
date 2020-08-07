@@ -36,13 +36,13 @@ template = """
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>MARKSTAT</title>
+        <title>TM-Link</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.2/css/bulma.min.css">
     </head>
     <body>
         <section class="section">
             <div class="container">
-                <h1 class="title is-1">MARKSTAT Data</h1>
+                <h1 class="title is-1">TM-Link Data</h1>
             </div>
         </section>
 
@@ -50,7 +50,7 @@ template = """
         <section class="section">
             <div class="container">
                 <h1 class="title is-2">Files</h1>
-                <p>All links to the files begin with <code>https://s3.wasabisys.com/markstat/</code></p>
+                <p>All links to the files begin with <code>https://s3.wasabisys.com/tmlink/</code></p>
                 <p>Add the folder name and file name after this link base.</p>
                 <br>
                 <article class="message is-info">
@@ -58,7 +58,7 @@ template = """
                         Example
                     </div>
                     <div class="message-body">
-                        https://s3.wasabisys.com/markstat/us/case-file-header.parquet
+                        https://s3.wasabisys.com/tmlink/us/case-file-header.parquet
                     </div>
                 </article>
             </div>
@@ -77,7 +77,7 @@ template = """
                             <td></td>
                             <td>
                                 <ul>
-                                    <li><a href="https://s3.wasabisys.com/markstat/trademarks.parquet">trademarks.parquet</a></li>
+                                    <li><a href="https://s3.wasabisys.com/tmlink/trademarks.parquet">trademarks.parquet</a></li>
                                 </ul>
                             </td>
                         </tr>
@@ -87,7 +87,7 @@ template = """
                                 <td>
                                     <ul>
                                         {% for parquet_file in files[folder] %}
-                                            <li><a href="https://s3.wasabisys.com/markstat/{{ folder }}/{{ parquet_file }}">{{ parquet_file }}</a></li>
+                                            <li><a href="https://s3.wasabisys.com/tmlink/{{ folder }}/{{ parquet_file }}">{{ parquet_file }}</a></li>
                                         {% endfor %}
                                     </ul>
                                 </td>
@@ -115,7 +115,7 @@ template = """
                         <pre>pip install pyarrow<br>pip install pandas</pre>
                         <br>
                         Use pandas to read parquet
-                        <pre>import pandas as pd<br>df = pd.read_parquet('https://s3.wasabisys.com/markstat/trademarks.parquet')</pre>
+                        <pre>import pandas as pd<br>df = pd.read_parquet('https://s3.wasabisys.com/tmlink/trademarks.parquet')</pre>
                     </div>
                 </article>
                 <br>
@@ -128,7 +128,7 @@ template = """
                         <pre>install.packages("arrow")</pre>
                         <br>
                         Use arrow to read parquet
-                        <pre>library(arrow)<br>download.file('https://s3.wasabisys.com/markstat/trademarks.parquet', 'trademarks.parquet')<br>df &#60;- read_parquet('trademarks.parquet')</pre>
+                        <pre>library(arrow)<br>download.file('https://s3.wasabisys.com/tmlink/trademarks.parquet', 'trademarks.parquet')<br>df &#60;- read_parquet('trademarks.parquet')</pre>
                     </div>
                 </article>
             </div>
