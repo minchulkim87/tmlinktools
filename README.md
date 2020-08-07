@@ -1,4 +1,4 @@
-# markstattools
+# tmlinktools
 
 Developed for/by IP Australia for the TM-Link project - an international trade mark dataset.
 
