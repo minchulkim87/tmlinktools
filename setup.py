@@ -21,6 +21,7 @@ setup(
         "toolz",
         "lxml",
         "jinja2",
+        "python-dotenv",
     ],
     name="tmlinktools",
     version=version,
