@@ -1,6 +1,6 @@
 import pandas as pd
 
-upload_folder = './upload'
+upload_folder = './upload/dataset'
 target_columns = ['ip_office', 'application_number', 'application_date', 'registration_date']
 data_reference = {
     'us': {

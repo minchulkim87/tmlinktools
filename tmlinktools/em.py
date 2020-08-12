@@ -20,7 +20,7 @@ save_path = './downloads/em'
 backup_path = './backup/em'
 temp_path = './temp/em'
 data_path = './data/em'
-upload_folder_path = './upload/em'
+upload_folder_path = './upload/open/em'
 
 ftp_link = 'ftp.euipo.europa.eu'
 root_key_list = ['Transaction', 'TradeMarkTransactionBody', 'TransactionContentDetails', 'TransactionData']

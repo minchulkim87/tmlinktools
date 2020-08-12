@@ -18,7 +18,7 @@ save_path = './downloads/us'
 backup_path = './backup/us'
 temp_path = './temp/us'
 data_path = './data/us'
-upload_folder_path = './upload/us'
+upload_folder_path = './upload/open/us'
 
 link_base = 'https://bulkdata.uspto.gov/data/trademark/dailyxml/applications/'
 root_key_list = ['trademark-applications-daily', 'application-information', 'file-segments', 'action-keys']

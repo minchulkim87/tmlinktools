@@ -17,7 +17,7 @@ save_path = './downloads/ca'
 backup_path = './backup/ca'
 temp_path = './temp/ca'
 data_path = './data/ca'
-upload_folder_path = './upload/ca'
+upload_folder_path = './upload/open/ca'
 
 root_key_list = ['tmk:TrademarkApplication', 'tmk:TrademarkBag']
 key_columns = ['operationCategory', 'ApplicationNumber']
