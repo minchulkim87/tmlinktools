@@ -38,7 +38,7 @@ Each dataset are built independently. Use the terminal (command prompt) to run t
 python -m tmlinktools.us
 python -m tmlinktools.ca
 python -m tmlinktools.em
-python -m tmlinktools.summary
+python -m tmlinktools.combine
 python -m tmlinktools.index
 ```
 
@@ -57,5 +57,5 @@ A quick note on how the files will be managed:
     - temp: This folder will be used to temporarily save files as the datasets are being updated. This should automatically empty itself after each update.
     - data: This is where the final datasets will be stored.
     - upload: This is where the final datasets will be stored - but each table will be combined to one parquet file each.
-- Subfolders will be created using the two-letter code representing the jurisdiction.
+- Subfolders will be created using the two-letter code representing the IP office.
 - Within each jurisdiction folder, each "table" will correspond to one parquet folder (which will contain the partitioned parquet files).
