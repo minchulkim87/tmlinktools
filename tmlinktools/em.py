@@ -2,7 +2,6 @@ import os
 import sys
 import shutil
 from ftplib import FTP
-#from urllib import request
 import requests
 import glob
 from typing import Callable, Iterator, Union

@@ -92,6 +92,9 @@ def download_all() -> None:
                     save_path,
                     zip_name
                 )
+            except KeyError as error:
+                print(f'{zip_name} does not have the root keys. The xml file is probably empty. Skipping')
+                pass
             except Exception as error:
                 print(f'Failed to download: {zip_name}')
                 raise error
