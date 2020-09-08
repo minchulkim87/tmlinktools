@@ -4,7 +4,7 @@ import shutil
 import glob
 from dotenv import load_dotenv
 from paramiko import Transport, SFTPClient
-from typing import Callable, Iterator, Union
+from typing import Callable, Iterator, Union, List
 import json
 import pyarrow
 import numpy as np
@@ -81,9 +81,12 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     temp = df.copy()
     for column in temp.columns:
         if 'Date' in column:
-            temp[column] = pd.to_datetime(temp[column], errors='coerce')
+            temp[column] = pd.to_datetime(temp[column], errors='coerce', utc=True)
         elif ('true' in temp[column].values) or ('false' in temp[column].values):
-            temp[column] = temp[column].fillna(False).replace('false', False).replace('true', True)
+            temp[column] = temp[column].fillna(False).replace('false', False).replace('true', True).astype(bool)
+        new_column_name = column.replace('MarkLicenceeExportList|', '').replace('@', '').replace('#', '')
+        temp = temp.rename(columns={column: new_column_name})
+    temp = temp.dropna(how='all')
     return temp
 
 
@@ -92,12 +95,25 @@ def clean_all_tables(data: dict) -> dict:
             for table_name, table_data in data.items()}
 
 
-def save_all_tables(data: dict, path: str, folder_name: str) -> None:
+def separate_and_save_tables(df: pd.DataFrame, key_columns_list: List[str], path: str, folder_name: str) -> None:
     if not os.path.exists(f'{path}/{folder_name}'):
         os.makedirs(f'{path}/{folder_name}')
-    for key in data:
-        data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet', index=False)
-
+    df = df.pipe(clean)
+    for column in df.columns:
+        if column.endswith('Details') & (column != 'MarkImageDetails'):
+            temp = df[key_columns_list + [column]]
+            df = df.drop(columns=column)
+            (temp
+             .pipe(fully_flatten)
+             .pipe(clean)
+             .to_parquet(f'{path}/{folder_name}/{column}.parquet', index=False))
+            del temp
+        elif column == 'MarkImageDetails':
+            df = df.drop(columns=column)
+    (df.pipe(fully_flatten)
+     .pipe(clean)
+     .to_parquet(f'{path}/{folder_name}/Application.parquet', index=False))
+    del df
 
 # This function is the high-level wrapper for the download process.
 
@@ -167,10 +183,10 @@ def backup() -> None:
     shutil.copytree(data_path, temp_path)
 
 
-def commit(update_version: str) -> None:
+def commit(update_date: str) -> None:
     shutil.rmtree(data_path)
     shutil.copytree(temp_path, data_path)
-    write_latest_folder_name(update_version)
+    write_update_date(update_date)
     shutil.rmtree(temp_path)
 
 
@@ -179,6 +195,19 @@ def rollback() -> None:
     shutil.copytree(backup_path, data_path)
     shutil.rmtree(backup_path)
 
+
+def write_update_date(update_date: str) -> None:
+    with open(f'{data_path}/updates.json', 'w') as jf:
+        json.dump({'latest': update_date}, jf)
+
+
+def get_update_date() -> str:
+    if os.path.exists(f'{data_path}/updates.json'):
+        with open(f'{data_path}/updates.json', 'r') as jf:
+            latest = json.loads(jf.read())['latest']
+    else:
+        latest = 'start'
+    return latest
 
 # This function is the high-level wrap for the merging process.
 
@@ -191,10 +220,10 @@ def update_file(file_path: str) -> None:
     target_file_path = f'{data_path}/{table_name}'
     if os.path.exists(target_file_path):
         (delete_then_append_dataframe(dd.read_parquet(target_file_path),
-                                        dd.read_parquet(file_path).pipe(remove_unnecessary))
+                                        dd.read_parquet(file_path))
         .pipe(save, temp_file_path))
     else:
-        (dd.read_parquet(file_path).pipe(remove_unnecessary)
+        (dd.read_parquet(file_path)
         .pipe(save, temp_file_path))
 
 
@@ -224,26 +253,25 @@ def make_each_table_as_single_file() -> None:
 
 
 def update_all() -> None:
-    download_all()
-    update_version = get_next_folder_name()
+    update_date = get_update_date()
     updated = False
-    while update_version:
+    while update_date:
         print("Backing up.")
         backup()
         try:
-            print(f"Merging in: {update_version}")
-            parquet_files = get_files_in_folder(update_version, 'parquet')
+            print(f"Merging in: {update_date}")
+            parquet_files = get_files_in_folder(update_date, 'parquet')
             for parquet_file in parquet_files:
                 update_file(parquet_file)
             print("Committing changes.")
-            commit(update_version)
-            update_version = get_next_folder_name()
+            commit(update_date)
+            update_date = get_update_date()
             updated = True
         except:
             print("Failed. Rolling back.")
             rollback()
             updated = False
-            update_version = None
+            update_date = None
     if updated:
         print('Preparing upload files')
         make_each_table_as_single_file()
@@ -260,6 +288,45 @@ def initialise():
     if not os.path.exists(data_path):
         os.makedirs(data_path)
 
+
+def extract_full_rollup():
+    # Note that the XML structures for full, rolllup, and diff files are different.
+    full_files = get_files_in_folder(save_path+'/full', 'zip')
+    full_files.sort()
+    
+    for full_file in full_files:
+        print(f'Converting {full_file}')
+        separate_and_save_tables(
+            (pdx.read_xml(full_file)
+             [['MarkLicenceeExportList']]
+             .pipe(flatten)),
+            key_columns_list=key_columns_list,
+            path=save_path+'/full',
+            folder_name=os.path.basename(full_file).replace('.zip', '')
+        )
+    
+    rollup_files = get_files_in_folder(save_path+'/rollup', 'zip')
+    rollup_files.sort()
+
+    for rollup_file in rollup_files:
+        print(f'Converting {rollup_file}')
+        separate_and_save_tables(
+            (pdx.read_xml(rollup_file)
+             [['MarkLicenceeExportList']]
+             .pipe(flatten)),
+            key_columns_list=key_columns_list,
+            path=save_path+'/rollup',
+            folder_name=os.path.basename(rollup_file).replace('.zip', '')
+        )
+
+    write_update_date('full_rollup')
+
+
 if __name__ == '__main__':
     initialise()
-    update_all()
+    if get_update_date() == 'start':
+        extract_full_rollup()
+    if get_update_date() == 'full_rollup':
+        get_update_date()
+
+    #update_all()

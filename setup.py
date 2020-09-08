@@ -22,6 +22,7 @@ setup(
         "lxml",
         "jinja2",
         "python-dotenv",
+        "paramiko",
     ],
     name="tmlinktools",
     version=version,

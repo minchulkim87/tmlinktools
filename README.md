@@ -16,7 +16,7 @@ Note that this tool is still in development, and the primary users are the Data 
 
 ## Requirements
 
-In addition to Python3, you will need connection to the internet. Preferably, you should have at least 32 GB of RAM to process the data. It will take a long time for all of the data to catch up to the "current" if you are starting from scratch. The daily updates from then on should take a few hours.
+In addition to Python3, you will need connection to the internet. At bare minimum, you should have 32 GB of RAM with 10 GB of swap space to process the data. Ideally, you should have 64 GB of RAM. It will take a long time for all of the data to catch up to the "current" if you are starting from scratch. The daily updates from then on should take a few hours.
 
 ## How To
 
