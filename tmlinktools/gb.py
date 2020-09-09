@@ -82,8 +82,6 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     for column in temp.columns:
         if 'Date' in column:
             temp[column] = pd.to_datetime(temp[column], errors='coerce', utc=True)
-        elif ('true' in temp[column].values) or ('false' in temp[column].values):
-            temp[column] = temp[column].fillna(False).replace('false', False).replace('true', True).astype(bool)
         new_column_name = column.replace('MarkLicenceeExportList|', '').replace('@', '').replace('#', '')
         temp = temp.rename(columns={column: new_column_name})
     temp = temp.dropna(how='all')
@@ -220,7 +218,7 @@ def update_file(file_path: str) -> None:
     target_file_path = f'{data_path}/{table_name}'
     if os.path.exists(target_file_path):
         (delete_then_append_dataframe(dd.read_parquet(target_file_path),
-                                        dd.read_parquet(file_path))
+                                      dd.read_parquet(file_path))
         .pipe(save, temp_file_path))
     else:
         (dd.read_parquet(file_path)
@@ -322,11 +320,58 @@ def extract_full_rollup():
     write_update_date('full_rollup')
 
 
+def merge_full_rollup():
+    print('Merging in full historical files')
+    full_folders = get_subfolders(f'{save_path}/full')
+    full_folders.sort()
+    for full_folder in full_folders:
+        print(f'    merging in {full_folder}')
+        print("        Backing up.")
+        backup()
+        try:
+            parquet_files = get_files_in_folder(f'{save_path}/full/{full_folder}', 'parquet')
+            for parquet_file in parquet_files:
+                update_file(parquet_file)
+            print("        Committing changes.")
+            commit('full_rollup')
+        except:
+            print("        Failed. Rolling back.")
+            rollback()
+
+    print(f'    merging in rollup_old')
+    print("        Backing up.")
+    backup()
+    try:
+        parquet_files = get_files_in_folder(f'{save_path}/rollup/rollup_old', 'parquet')
+        for parquet_file in parquet_files:
+            update_file(parquet_file)
+        print("        Committing changes.")
+        commit('full_rollup')
+    except:
+        print("        Failed. Rolling back.")
+        rollback()
+    
+    print(f'    merging in rollup')
+    print("        Backing up.")
+    backup()
+    try:
+        parquet_files = get_files_in_folder(f'{save_path}/rollup/rollup', 'parquet')
+        for parquet_file in parquet_files:
+            update_file(parquet_file)
+        print("        Committing changes.")
+        commit('full_rollup')
+    except:
+        print("        Failed. Rolling back.")
+        rollback()
+
+    write_update_date('full_rollup_merged')
+
+
 if __name__ == '__main__':
     initialise()
     if get_update_date() == 'start':
         extract_full_rollup()
     if get_update_date() == 'full_rollup':
-        get_update_date()
+        merge_full_rollup()
 
     #update_all()
