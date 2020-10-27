@@ -27,7 +27,7 @@ As this is a tool only used by one or two Data Analysts at this point, documenta
 You will need Python (3.6 or newer). Install the pacakge using pip:
 
 ```bash
-pip install tmlinktools
+pip install -e git+https://github.com/minchulkim87/tmlinktools#egg=tmlinktools
 ```
 
 ### Run
