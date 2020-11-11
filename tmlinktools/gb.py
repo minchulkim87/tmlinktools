@@ -245,40 +245,11 @@ def make_each_table_as_single_file() -> None:
             raise error
 
 
-# -------------------------------------------------------------------------------------
-# This function will automate everything.
-# -------------------------------------------------------------------------------------
-
-
-def update_all() -> None:
-    update_date = get_update_date()
-    updated = False
-    while update_date:
-        print("Backing up.")
-        backup()
-        try:
-            print(f"Merging in: {update_date}")
-            parquet_files = get_files_in_folder(update_date, 'parquet')
-            for parquet_file in parquet_files:
-                update_file(parquet_file)
-            print("Committing changes.")
-            commit(update_date)
-            update_date = get_update_date()
-            updated = True
-        except:
-            print("Failed. Rolling back.")
-            rollback()
-            updated = False
-            update_date = None
-    if updated:
-        print('Preparing upload files')
-        make_each_table_as_single_file()
-    print("Done")
-
-
 def initialise():
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+    if not os.path.exists(save_path+'/new'):
+        os.makedirs(save_path+'/new')
     if not os.path.exists(temp_path):
         os.makedirs(temp_path)
     if not os.path.exists(upload_folder_path):
@@ -367,11 +338,61 @@ def merge_full_rollup():
     write_update_date('full_rollup_merged')
 
 
+def download_new_rollup():
+    print('Downloading the latest rollup file')
+    save_file = save_path+'/new/rollup.zip'
+    with Transport((ftp_link, 22)) as transport:
+        transport.connect(username=UKIPO_USERNAME, password=UKIPO_PASSWORD)
+        
+        # performance boost... maybe...
+        transport.window_size = 2097152
+        transport.packetizer.REKEY_BYTES = pow(2, 40)
+        transport.packetizer.REKEY_PACKETS = pow(2, 40)
+        
+        with SFTPClient.from_transport(transport) as sftp:
+            sftp.chdir('./licensee/Full')
+            sftp.get('./rollup.zip', save_file)
+    print('Download complete')
+
+
+def extract_new_rollup():
+    rollup_file = save_path+'/new/rollup.zip'
+    print(f'Converting {rollup_file}')
+    separate_and_save_tables(
+        (pdx.read_xml(rollup_file)
+            [['MarkLicenceeExportList']]
+            .pipe(flatten)),
+        key_columns_list=key_columns_list,
+        path=save_path+'/new',
+        folder_name=os.path.basename(rollup_file).replace('.zip', '')
+    )
+
+
+def merge_new_rollup():
+    print(f'    merging in rollup')
+    print("        Backing up.")
+    backup()
+    try:
+        parquet_files = get_files_in_folder(f'{save_path}/new/rollup', 'parquet')
+        for parquet_file in parquet_files:
+            update_file(parquet_file)
+        print("        Committing changes.")
+        commit('full_rollup')
+    except:
+        print("        Failed. Rolling back.")
+        rollback()
+
+
 if __name__ == '__main__':
     initialise()
     if get_update_date() == 'start':
         extract_full_rollup()
     if get_update_date() == 'full_rollup':
         merge_full_rollup()
-
-    #update_all()
+    if get_update_date() == 'full_rollup_merged':
+        download_new_rollup()
+        extract_new_rollup()
+        merge_new_rollup()
+    print('Preparing upload files')
+    make_each_table_as_single_file()
+    print("Done")
