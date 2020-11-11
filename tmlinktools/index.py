@@ -12,13 +12,8 @@ upload_path = './upload'
 def get_files_in_folder(folder: str, file_extension: str) -> list:
     return glob.glob(f"{folder}/*.{file_extension}")
 
+folders = ['dataset', 'open/us', 'open/ca', 'open/em', 'closed/gb']
 
-def get_subfolders(folder: str) -> list:
-    return [f.name for f in os.scandir(folder) if f.is_dir()]
-
-
-folders = get_subfolders(upload_path)
-folders.sort()
 files = {}
 columns = {}
 
@@ -60,7 +55,7 @@ template = """
                         Example
                     </div>
                     <div class="message-body">
-                        https://s3.wasabisys.com/tmlink/us/case-file-header.parquet
+                        https://s3.wasabisys.com/tmlink/open/us/case-file-header.parquet
                     </div>
                 </article>
             </div>
@@ -75,14 +70,6 @@ template = """
                         <th>File (Data Table)</th>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td></td>
-                            <td>
-                                <ul>
-                                    <li><a href="https://s3.wasabisys.com/tmlink/trademarks.parquet">trademarks.parquet</a></li>
-                                </ul>
-                            </td>
-                        </tr>
                         {% for folder in folders %}
                             <tr>
                                 <td>{{ folder }}</td>
@@ -158,34 +145,6 @@ template = """
                         Because the data had to be flattened out from a "tree" structure, the branch structures are reflected in column names. They can get quite long.
                     </div>
                 </article>
-            </div>
-        </section>
-
-
-        <section class="section">
-            <div class="container">
-                <h1 class="title is-3">/</h1>
-                <p>This data is the combined core set of data from all the IP offices</p>
-                <br>
-                <table class="table is-bordered is-striped is-hoverable is-fullwidth">
-                    <thead>
-                        <th>File</th>
-                        <th>Columns</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>trademarks.parquet</td>
-                            <td>
-                                <ul>
-                                    <li>ip_office</li>
-                                    <li>application_number</li>
-                                    <li>application_date</li>
-                                    <li>registration_date</li>
-                                </ul>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </section>
 

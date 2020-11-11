@@ -37,11 +37,21 @@ def applications_table() -> pd.DataFrame:
           .assign(ip_office = 'em')
           [['ip_office', 'application_number', 'application_date', 'registration_date']])
     
-    return pd.concat([us, ca, em], sort=False)
+    print(' GB')
+    gb = (pd.read_parquet(f'{upload_folder}/closed/gb/Application.parquet')
+          .rename(columns={
+              'ApplicationNumber': 'application_number',
+              'ApplicationDateTime': 'application_date',
+              'RegistrationDate': 'registration_date'
+          })
+          .assign(ip_office = 'em')
+          [['ip_office', 'application_number', 'application_date', 'registration_date']])
+    
+    return pd.concat([us, ca, em, gb], sort=False)
 
 
 def main():
-    print('Making the applications table')
+    print('Making the tm-link applications table')
     applications_table().to_parquet(f'{datset_folder}/applications.parquet', index=False)
     print('Done.')
 
