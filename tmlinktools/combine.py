@@ -52,7 +52,9 @@ def applications_table() -> pd.DataFrame:
 
 def main():
     print('Making the tm-link applications table')
-    applications_table().to_parquet(f'{datset_folder}/applications.parquet', index=False)
+    applications_table().to_parquet(f'{datset_folder}/applications.parquet',
+                                    index=False,
+                                    use_deprecated_int96_timestamps=True)
     print('Done.')
 
 

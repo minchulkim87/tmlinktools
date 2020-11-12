@@ -405,6 +405,7 @@ def make_each_table_as_single_file() -> None:
                          engine='pyarrow',
                          compression='snappy',
                          allow_truncated_timestamps=True,
+                         use_deprecated_int96_timestamps=True,
                          index=False))
         except Exception as error:
             print('    Failed.')

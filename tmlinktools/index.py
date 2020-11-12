@@ -2,8 +2,7 @@
 
 import os
 import glob
-import dask.dataframe as dd
-import pandas as pd
+import dask.dataframe as dd # dask's laziness helps as I only need the column names not any data.
 from jinja2 import Template
 
 
