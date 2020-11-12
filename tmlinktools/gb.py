@@ -84,6 +84,12 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
             temp[column] = pd.to_datetime(temp[column], errors='coerce', utc=True)
         new_column_name = column.replace('MarkLicenceeExportList|', '').replace('@', '').replace('#', '')
         temp = temp.rename(columns={column: new_column_name})
+
+    for column in temp.columns: # This particular table has some information we want, but the rest are useless and the file becomes huge.
+        if column.startswith('MarkSeriesDetails|MarkSeriesItem|Mark3DModel'):
+            temp = temp.drop(columns=column)
+        if column.startswith('MarkSeriesDetails|MarkSeriesItem|MarkImage') & ('Text' not in column):
+            temp = temp.drop(columns=column)
     temp = temp.dropna(how='all')
     return temp
 
@@ -98,7 +104,7 @@ def separate_and_save_tables(df: pd.DataFrame, key_columns_list: List[str], path
         os.makedirs(f'{path}/{folder_name}')
     df = df.pipe(clean)
     for column in df.columns:
-        if column.endswith('Details') & (column != 'MarkImageDetails'):
+        if column.endswith('Details') & (column != 'MarkImageDetails'): # File size too large, and largely useless.
             temp = df[key_columns_list + [column]]
             df = df.drop(columns=column)
             (temp
@@ -234,12 +240,12 @@ def make_each_table_as_single_file() -> None:
         print(f'    {table}')
         try:
             (dd.read_parquet(f'{data_path}/{table}')
-             .compute()
-             .to_parquet(f'{upload_folder_path}/{table}.parquet',
-                         engine='pyarrow',
-                         compression='snappy',
-                         allow_truncated_timestamps=True,
-                         index=False))
+            .compute()
+            .to_parquet(f'{upload_folder_path}/{table}.parquet',
+                        engine='pyarrow',
+                        compression='snappy',
+                        allow_truncated_timestamps=True,
+                        index=False))
         except Exception as error:
             print('    Failed.')
             raise error
