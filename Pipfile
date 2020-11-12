@@ -7,7 +7,6 @@ verify_ssl = true
 pipenv-setup = "*"
 
 [packages]
-pyarrow = "*"
 pandas = "*"
 xmltodict = "*"
 pandas-read-xml = "*"
@@ -18,6 +17,7 @@ lxml = "*"
 jinja2 = "*"
 python-dotenv = "*"
 paramiko = "*"
+pyarrow = "*"
 
 [requires]
 python_version = "3.7"

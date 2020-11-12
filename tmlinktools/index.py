@@ -2,6 +2,7 @@
 
 import os
 import glob
+import dask.dataframe as dd
 import pandas as pd
 from jinja2 import Template
 
@@ -24,7 +25,8 @@ for folder in folders:
     files[folder] = [os.path.basename(parquet_file) for parquet_file in files_list]
     columns[folder] = {}
     for parquet_file in files_list:
-        columns[folder][os.path.basename(parquet_file)] = [column for column in pd.read_parquet(parquet_file).columns]
+        columns[folder][os.path.basename(parquet_file)] = [column for column in dd.read_parquet(parquet_file,
+                                                                                                engine='pyarrow').columns]
 
 
 template = """
