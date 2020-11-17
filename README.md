@@ -38,11 +38,12 @@ Each dataset are built independently. Use the terminal (command prompt) to run t
 python -m tmlinktools.us
 python -m tmlinktools.ca
 python -m tmlinktools.em
+python -m tmlinktools.gb
 python -m tmlinktools.combine
 python -m tmlinktools.index
 ```
 
-The US and EM update their data daily, and CA weekly.
+The US, EM, and GB update their data daily, and CA weekly. However, since GB update uses a "rollup" (not a daily diff) which is a huge zip file to download, weekly update should be more efficient than trying to download everyday.
 
 
 #### Structure

@@ -56,39 +56,13 @@ template = """
                         Example
                     </div>
                     <div class="message-body">
-                        https://s3.wasabisys.com/tmlink/open/us/case-file-header.parquet
+                        https://s3.wasabisys.com/tmlink/dataset/applications.parquet
                     </div>
                 </article>
             </div>
         </section>
-
-
-        <section class="section">
-            <div class="container">
-                <table class="table is-bordered is-striped is-hoverable is-fullwidth">
-                    <thead>
-                        <th>Folder (IP Office Code)</th>
-                        <th>File (Data Table)</th>
-                    </thead>
-                    <tbody>
-                        {% for folder in folders %}
-                            <tr>
-                                <td>{{ folder }}</td>
-                                <td>
-                                    <ul>
-                                        {% for parquet_file in files[folder] %}
-                                            <li><a href="https://s3.wasabisys.com/tmlink/{{ folder }}/{{ parquet_file }}">{{ parquet_file }}</a></li>
-                                        {% endfor %}
-                                    </ul>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-
+        
+        
         <section class="section">
             <div class="container">
                 <h1 class="subtitle is-3">Parquet</h1>
@@ -105,7 +79,7 @@ template = """
                         <pre>pip install pyarrow<br>pip install pandas</pre>
                         <br>
                         Use pandas to read parquet
-                        <pre>import pandas as pd<br>df = pd.read_parquet('https://s3.wasabisys.com/tmlink/trademarks.parquet')</pre>
+                        <pre>import pandas as pd<br>df = pd.read_parquet('https://s3.wasabisys.com/tmlink/dataset/applications.parquet')</pre>
                     </div>
                 </article>
                 <br>
@@ -118,9 +92,35 @@ template = """
                         <pre>install.packages("arrow")</pre>
                         <br>
                         Use arrow to read parquet
-                        <pre>library(arrow)<br>download.file('https://s3.wasabisys.com/tmlink/trademarks.parquet', 'trademarks.parquet')<br>df &#60;- read_parquet('trademarks.parquet')</pre>
+                        <pre>library(arrow)<br>download.file('https://s3.wasabisys.com/tmlink/dataset/applications.parquet', 'applications.parquet')<br>df &#60;- read_parquet('applications.parquet')</pre>
                     </div>
                 </article>
+            </div>
+        </section>
+        
+
+        <section class="section">
+            <div class="container">
+                <table class="table is-bordered is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <th>Folder</th>
+                        <th>File</th>
+                    </thead>
+                    <tbody>
+                        {% for folder in folders %}
+                            <tr>
+                                <td>{{ folder }}</td>
+                                <td>
+                                    <ul>
+                                        {% for parquet_file in files[folder] %}
+                                            <li><a href="https://s3.wasabisys.com/tmlink/{{ folder }}/{{ parquet_file }}">{{ parquet_file }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </section>
 
