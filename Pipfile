@@ -18,6 +18,7 @@ jinja2 = "*"
 python-dotenv = "*"
 paramiko = "*"
 pyarrow = "*"
+zipfile36 = "*"
 
 [requires]
 python_version = "3.7"
