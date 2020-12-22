@@ -173,14 +173,18 @@ def save(df: dd.DataFrame, path: str) -> None:
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
-                    allow_truncated_timestamps=True))
+                    use_deprecated_int96_timestamps=True,
+                    allow_truncated_timestamps=True,
+                    schema='infer'))
     else:
         (df
         .map_partitions(clean)
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
-                    allow_truncated_timestamps=True))
+                    use_deprecated_int96_timestamps=True,
+                    allow_truncated_timestamps=True,
+                    schema='infer'))
 
 
 # These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
