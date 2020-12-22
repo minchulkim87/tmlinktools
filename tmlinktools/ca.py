@@ -245,7 +245,12 @@ def save_all_tables(data: dict, path: str, folder_name: str) -> None:
     if not os.path.exists(f'{path}/{folder_name}'):
         os.makedirs(f'{path}/{folder_name}')
     for key in data:
-        data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet', index=False)
+        data[key].to_parquet(f'{path}/{folder_name}/{key}.parquet',
+                             index=False,
+                             engine='pyarrow',
+                             compression='snappy',
+                             use_deprecated_int96_timestamps=True,
+                             allow_truncated_timestamps=True)
 
 
 def download_all() -> None:
@@ -326,14 +331,18 @@ def save(df: dd.DataFrame, path: str) -> None:
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
-                    allow_truncated_timestamps=True))
+                    use_deprecated_int96_timestamps=True,
+                    allow_truncated_timestamps=True,
+                    schema='infer'))
     else:
         (df
         .map_partitions(clean_data_types)
         .to_parquet(path,
                     engine='pyarrow',
                     compression='snappy',
-                    allow_truncated_timestamps=True))
+                    use_deprecated_int96_timestamps=True,
+                    allow_truncated_timestamps=True,
+                    schema='infer'))
 
 
 # These functions make the individual updates happen in a "safer" way by saving to temp folder and replacing the old data only after success.
@@ -446,11 +455,12 @@ def update_all() -> None:
             commit(update_version)
             update_version = get_next_folder_name()
             updated = True
-        except:
+        except Exception:
             print("Failed. Rolling back.")
             rollback()
             updated = False
             update_version = None
+            raise Exception
     if updated:
         print('Preparing upload files')
         make_each_table_as_single_file()
