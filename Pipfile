@@ -9,7 +9,6 @@ pipenv-setup = "*"
 [packages]
 pandas = "*"
 xmltodict = "*"
-pandas-read-xml = "*"
 dask = {extras = ["complete"],version = "*"}
 numpy = "*"
 toolz = "*"
@@ -19,6 +18,7 @@ python-dotenv = "*"
 paramiko = "*"
 pyarrow = "*"
 zipfile36 = "*"
+pandas-read-xml = "*"
 
 [requires]
 python_version = "3.7"

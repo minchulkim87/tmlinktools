@@ -36,6 +36,14 @@ def get_file_list_as_table() -> pd.DataFrame:
 
     weekly_files = files_list[0].iloc[:, 0:2]
     weekly_files.columns = ['file_name', 'volume']
+    
+    # manual fix for incorrect file names on CIPO website
+    correct_file_names = {
+        'WEEKLY_2020-11-17_00_07-58.zip': 'WEEKLY_2020-11-17_00-07-58.zip'
+    }
+    weekly_files = weekly_files.replace(correct_file_names)
+    
+    
     weekly_files = (weekly_files.loc[:, ['volume', 'file_name']]
                     .sort_values('volume').reset_index(drop=True))
 
@@ -252,7 +260,7 @@ def download_all() -> None:
                 else:
                     url = historical_zip_url_base + zip_file
                 save_all_tables(
-                    (pdx.read_xml(url, root_key_list, transpose=True)
+                    (pdx.read_xml(url, root_key_list=root_key_list, transpose=True)
                         .pipe(normalise, 'com:ApplicationNumber')
                         .pipe(clean_column_names)
                         .rename(columns={'ApplicationNumber|ST13ApplicationNumber': 'ApplicationNumber'})
