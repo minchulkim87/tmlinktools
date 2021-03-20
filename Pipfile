@@ -19,6 +19,7 @@ paramiko = "*"
 pyarrow = "*"
 zipfile36 = "*"
 pandas-read-xml = "*"
+urllib3 = ">=1.26.4"
 
 [requires]
 python_version = "3.7"

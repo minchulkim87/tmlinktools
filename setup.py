@@ -2,7 +2,7 @@ from pathlib import Path
 from setuptools import setup
 from setuptools import find_packages
 
-version = "0.4.1"
+version = "0.4.2"
 description = "Python tools to help build the TM-Link - a global trade mark dataset."
 
 source_root = Path(".")
@@ -14,7 +14,6 @@ setup(
     install_requires=[
         "pandas",
         "xmltodict",
-        "pandas-read-xml",
         "dask[complete]",
         "numpy",
         "toolz",
@@ -23,6 +22,9 @@ setup(
         "python-dotenv",
         "paramiko",
         "pyarrow",
+        "zipfile36",
+        "pandas-read-xml",
+        "urllib3>=1.26.4",
     ],
     name="tmlinktools",
     version=version,
